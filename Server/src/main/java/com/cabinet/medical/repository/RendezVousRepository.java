@@ -1,0 +1,17 @@
+package com.cabinet.medical.repository;
+
+import com.cabinet.medical.entity.RendezVous;
+import com.cabinet.medical.enums.StatutRdv;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import java.time.LocalDateTime;
+
+public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
+    Page<RendezVous> findByMedecinIdAndDateHeureBetween(
+        Long medecinId, LocalDateTime debut, LocalDateTime fin, Pageable pageable);
+    boolean existsByMedecinIdAndDateHeureBetweenAndStatutNot(
+        Long medecinId, LocalDateTime debut, LocalDateTime fin, StatutRdv statut);
+    Page<RendezVous> findByStatut(StatutRdv statut, Pageable pageable);
+    Page<RendezVous> findByPatientId(Long patientId, Pageable pageable);
+}

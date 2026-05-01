@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://cabinet.medical.com/ws"
+           targetNamespace="http://cabinet.medical.com/ws"
+           elementFormDefault="qualified">
+
+    <xs:element name="GetPatientByCinRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="cin" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="GetPatientByCinResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="id" type="xs:long"/>
+                <xs:element name="nom" type="xs:string"/>
+                <xs:element name="prenom" type="xs:string"/>
+                <xs:element name="cin" type="xs:string"/>
+                <xs:element name="telephone" type="xs:string" minOccurs="0"/>
+                <xs:element name="adresse" type="xs:string" minOccurs="0"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="CreatePatientRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="nom" type="xs:string"/>
+                <xs:element name="prenom" type="xs:string"/>
+                <xs:element name="cin" type="xs:string"/>
+                <xs:element name="telephone" type="xs:string" minOccurs="0"/>
+                <xs:element name="adresse" type="xs:string" minOccurs="0"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="CreatePatientResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="id" type="xs:long"/>
+                <xs:element name="success" type="xs:boolean"/>
+                <xs:element name="message" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="VerifierCouvertureRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="patientId" type="xs:long"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="VerifierCouvertureResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="couvert" type="xs:boolean"/>
+                <xs:element name="typeMutuelle" type="xs:string" minOccurs="0"/>
+                <xs:element name="tauxRemboursement" type="xs:double" minOccurs="0"/>
+                <xs:element name="dateExpiration" type="xs:string" minOccurs="0"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="DemandeRemboursementRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="patientId" type="xs:long"/>
+                <xs:element name="consultationId" type="xs:long"/>
+                <xs:element name="mutuelleId" type="xs:long"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="DemandeRemboursementResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="dossierId" type="xs:long"/>
+                <xs:element name="success" type="xs:boolean"/>
+                <xs:element name="message" type="xs:string"/>
+                <xs:element name="montantRembourse" type="xs:double" minOccurs="0"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="GetHistoriqueConsultationsRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="patientId" type="xs:long"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="GetHistoriqueConsultationsResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="consultations" type="tns:ConsultationItem" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:complexType name="ConsultationItem">
+        <xs:sequence>
+            <xs:element name="id" type="xs:long"/>
+            <xs:element name="dateVisite" type="xs:string"/>
+            <xs:element name="motif" type="xs:string" minOccurs="0"/>
+            <xs:element name="diagnostic" type="xs:string" minOccurs="0"/>
+            <xs:element name="montantTotal" type="xs:double" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+</xs:schema>
