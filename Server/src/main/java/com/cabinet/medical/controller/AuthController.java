@@ -4,6 +4,7 @@ import com.cabinet.medical.dto.request.LoginRequest;
 import com.cabinet.medical.dto.response.ApiResponse;
 import com.cabinet.medical.dto.response.AuthResponse;
 import com.cabinet.medical.service.AuthService;
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +41,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(null, "Mot de passe réinitialisé", 200));
     }
 
-    public ResponseEntity<ApiResponse<AuthResponse>> rateLimitFallback(LoginRequest request, Exception ex) {
+    public ResponseEntity<ApiResponse<AuthResponse>> rateLimitFallback(LoginRequest request, RequestNotPermitted ex) {
         return ResponseEntity.status(429)
             .body(ApiResponse.error("Trop de tentatives de connexion. Réessayez dans 1 minute.", 429));
     }

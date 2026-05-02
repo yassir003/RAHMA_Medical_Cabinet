@@ -17,16 +17,20 @@ public class AuditEventProducer {
     private static final String QUEUE_AUDIT = "queue.audit.events";
 
     public void publierEvenementAudit(String action, String entite, Long entiteId) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String utilisateur = auth != null ? auth.getName() : "system";
-        AuditMessage msg = AuditMessage.builder()
-            .action(action)
-            .entite(entite)
-            .entiteId(entiteId)
-            .utilisateur(utilisateur)
-            .details(action + " sur " + entite + " id=" + entiteId)
-            .build();
-        jmsTemplate.convertAndSend(QUEUE_AUDIT, msg);
-        log.debug("Événement audit publié: {} {} {}", action, entite, entiteId);
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String utilisateur = auth != null ? auth.getName() : "system";
+            AuditMessage msg = AuditMessage.builder()
+                .action(action)
+                .entite(entite)
+                .entiteId(entiteId)
+                .utilisateur(utilisateur)
+                .details(action + " sur " + entite + " id=" + entiteId)
+                .build();
+            jmsTemplate.convertAndSend(QUEUE_AUDIT, msg);
+            log.debug("Événement audit publié: {} {} {}", action, entite, entiteId);
+        } catch (Exception e) {
+            log.warn("JMS audit unavailable ({} {} {}): {}", action, entite, entiteId, e.getMessage());
+        }
     }
 }

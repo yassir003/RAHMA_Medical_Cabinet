@@ -14,7 +14,11 @@ public class DashboardProducer {
     private static final String TOPIC_DASHBOARD = "topic.dashboard.update";
 
     public void notifierMiseAJourDashboard(String typeEvenement) {
-        jmsTemplate.convertAndSend(TOPIC_DASHBOARD, typeEvenement);
-        log.debug("Dashboard mis à jour: {}", typeEvenement);
+        try {
+            jmsTemplate.convertAndSend(TOPIC_DASHBOARD, typeEvenement);
+            log.debug("Dashboard mis à jour: {}", typeEvenement);
+        } catch (Exception e) {
+            log.warn("JMS dashboard unavailable ({}): {}", typeEvenement, e.getMessage());
+        }
     }
 }
