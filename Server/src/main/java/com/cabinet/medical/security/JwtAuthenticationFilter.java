@@ -1,5 +1,7 @@
 package com.cabinet.medical.security;
 
+import com.cabinet.medical.entity.User;
+import com.cabinet.medical.enums.Role;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,6 +21,8 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final String CHANGE_PASSWORD_PATH = "/api/v1/auth/change-password";
+
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService userDetailsService;
 
@@ -35,6 +39,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(auth);
+
+            // Forcer le changement de mot de passe temporaire pour les patients
+            if (userDetails instanceof User user
+                    && user.getRole() == Role.PATIENT
+                    && !user.isPasswordChanged()
+                    && !request.getRequestURI().equals(CHANGE_PASSWORD_PATH)) {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write(
+                    "{\"error\":\"Mot de passe temporaire\","
+                    + "\"message\":\"Vous devez changer votre mot de passe via POST "
+                    + CHANGE_PASSWORD_PATH + "\","
+                    + "\"status\":403}");
+                return;
+            }
         }
 
         filterChain.doFilter(request, response);

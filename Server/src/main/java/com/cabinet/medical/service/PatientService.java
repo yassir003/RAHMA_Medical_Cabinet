@@ -5,8 +5,10 @@ import com.cabinet.medical.dto.response.PatientResponse;
 import com.cabinet.medical.entity.Patient;
 import com.cabinet.medical.entity.User;
 import com.cabinet.medical.enums.Role;
+import com.cabinet.medical.exception.RegistrationException;
 import com.cabinet.medical.exception.ResourceNotFoundException;
 import com.cabinet.medical.mapper.PatientMapper;
+import com.cabinet.medical.messaging.producer.NotificationProducer;
 import com.cabinet.medical.repository.PatientRepository;
 import com.cabinet.medical.repository.UserRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -14,6 +16,9 @@ import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +32,7 @@ public class PatientService {
     private final UserRepository userRepository;
     private final PatientMapper patientMapper;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationProducer notificationProducer;
 
     @CircuitBreaker(name = "patientService", fallbackMethod = "patientsFallback")
     @Retry(name = "patientService")
@@ -44,11 +50,41 @@ public class PatientService {
     }
 
     public PatientResponse getById(Long id) {
-        return patientMapper.toResponse(findOrThrow(id));
+        Patient patient = findOrThrow(id);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_PATIENT"))) {
+            Patient mine = patientRepository.findByUser_Email(auth.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("Fiche patient introuvable pour ce compte"));
+            if (!mine.getId().equals(id)) {
+                throw new AccessDeniedException("Accès refusé : vous ne pouvez consulter que votre propre fiche");
+            }
+        }
+        return patientMapper.toResponse(patient);
     }
 
     @Transactional
     public PatientResponse create(PatientRequest request) {
+        if (!StringUtils.hasText(request.getEmail())) {
+            throw new RegistrationException("L'email du patient est obligatoire");
+        }
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new RegistrationException("Un compte existe déjà avec l'email : " + request.getEmail());
+        }
+        if (patientRepository.findByCin(request.getCin()).isPresent()) {
+            throw new RegistrationException("Un patient existe déjà avec le CIN : " + request.getCin());
+        }
+
+        // Mot de passe temporaire = CIN (le patient devra le changer à la première connexion)
+        User user = User.builder()
+            .email(request.getEmail())
+            .password(passwordEncoder.encode(request.getCin()))
+            .role(Role.PATIENT)
+            .enabled(true)
+            .passwordChanged(false)
+            .build();
+        userRepository.save(user);
+
         Patient patient = Patient.builder()
             .nom(request.getNom())
             .prenom(request.getPrenom())
@@ -59,18 +95,17 @@ public class PatientService {
             .groupeSanguin(request.getGroupeSanguin())
             .allergies(request.getAllergies())
             .antecedents(request.getAntecedents())
+            .user(user)
             .build();
-        if (StringUtils.hasText(request.getEmail()) && StringUtils.hasText(request.getPassword())) {
-            User user = User.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.PATIENT)
-                .enabled(true)
-                .build();
-            userRepository.save(user);
-            patient.setUser(user);
-        }
-        return patientMapper.toResponse(patientRepository.save(patient));
+        Patient saved = patientRepository.save(patient);
+
+        // Notification JMS avec les identifiants provisoires
+        notificationProducer.envoyerNotification(saved,
+            "Votre compte a été créé. Email : " + request.getEmail()
+            + ", Mot de passe temporaire : votre CIN (" + request.getCin() + ")."
+            + " Connectez-vous et changez votre mot de passe.");
+
+        return patientMapper.toResponse(saved);
     }
 
     @Transactional

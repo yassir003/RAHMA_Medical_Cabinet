@@ -35,7 +35,7 @@ public class RendezVousController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SECRETAIRE','MEDECIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SECRETAIRE','MEDECIN','PATIENT')")
     public ResponseEntity<ApiResponse<RendezVousResponse>> getById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(rendezVousService.getById(id), "Rendez-vous trouvé", 200));
     }

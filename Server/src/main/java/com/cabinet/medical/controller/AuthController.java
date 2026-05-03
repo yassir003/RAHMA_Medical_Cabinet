@@ -1,5 +1,6 @@
 package com.cabinet.medical.controller;
 
+import com.cabinet.medical.dto.request.ChangePasswordRequest;
 import com.cabinet.medical.dto.request.LoginRequest;
 import com.cabinet.medical.dto.request.RegisterRequest;
 import com.cabinet.medical.dto.response.ApiResponse;
@@ -11,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -32,6 +34,13 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse auth = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success(auth, "Connexion réussie", 200));
+    }
+
+    @PostMapping("/change-password")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(request);
+        return ResponseEntity.ok(ApiResponse.success(null, "Mot de passe modifié avec succès", 200));
     }
 
     @PostMapping("/logout")

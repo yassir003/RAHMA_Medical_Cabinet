@@ -11,4 +11,5 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
         String nom, String prenom, String cin, Pageable pageable);
     Optional<Patient> findByCin(String cin);
     Optional<Patient> findByUserId(Long userId);
+    Optional<Patient> findByUser_Email(String email);
 }

@@ -34,6 +34,9 @@ public class User implements UserDetails {
 
     private boolean enabled = true;
 
+    @Column(nullable = false)
+    private boolean passwordChanged = false;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

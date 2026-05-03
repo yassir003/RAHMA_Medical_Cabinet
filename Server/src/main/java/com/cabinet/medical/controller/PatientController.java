@@ -41,7 +41,7 @@ public class PatientController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SECRETAIRE','MEDECIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SECRETAIRE','MEDECIN','PATIENT')")
     public ResponseEntity<ApiResponse<PatientResponse>> getById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(patientService.getById(id), "Patient trouvé", 200));
     }

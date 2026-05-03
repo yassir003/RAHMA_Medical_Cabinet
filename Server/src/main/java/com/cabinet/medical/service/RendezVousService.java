@@ -20,6 +20,9 @@ import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,11 +49,32 @@ public class RendezVousService {
     }
 
     public RendezVousResponse getById(Long id) {
-        return rendezVousMapper.toResponse(findOrThrow(id));
+        RendezVous rdv = findOrThrow(id);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_PATIENT"))) {
+            Patient mine = patientRepository.findByUser_Email(auth.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("Fiche patient introuvable pour ce compte"));
+            if (!rdv.getPatient().getId().equals(mine.getId())) {
+                throw new AccessDeniedException("Accès refusé : ce rendez-vous ne vous appartient pas");
+            }
+        }
+        return rendezVousMapper.toResponse(rdv);
     }
 
     @Transactional
     public RendezVousResponse creerRendezVous(RendezVousRequest request) {
+        // Un PATIENT ne peut réserver que pour lui-même
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_PATIENT"))) {
+            Patient mine = patientRepository.findByUser_Email(auth.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("Fiche patient introuvable pour ce compte"));
+            if (!mine.getId().equals(request.getPatientId())) {
+                throw new AccessDeniedException("Vous ne pouvez prendre un rendez-vous que pour vous-même");
+            }
+        }
+
         boolean conflit = rendezVousRepository.existsByMedecinIdAndDateHeureBetweenAndStatutNot(
             request.getMedecinId(),
             request.getDateHeure(),

@@ -1,5 +1,6 @@
 package com.cabinet.medical.service;
 
+import com.cabinet.medical.dto.request.ChangePasswordRequest;
 import com.cabinet.medical.dto.request.LoginRequest;
 import com.cabinet.medical.dto.request.RegisterRequest;
 import com.cabinet.medical.dto.response.AuthResponse;
@@ -7,6 +8,7 @@ import com.cabinet.medical.entity.Patient;
 import com.cabinet.medical.entity.User;
 import com.cabinet.medical.enums.Role;
 import com.cabinet.medical.exception.RegistrationException;
+import com.cabinet.medical.exception.ResourceNotFoundException;
 import com.cabinet.medical.messaging.producer.AuditEventProducer;
 import com.cabinet.medical.repository.PatientRepository;
 import com.cabinet.medical.repository.UserRepository;
@@ -15,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -90,5 +93,19 @@ public class AuthService {
             .email(user.getEmail())
             .role("PATIENT")
             .build();
+    }
+
+    @Transactional
+    public void changePassword(ChangePasswordRequest request) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable"));
+        if (!passwordEncoder.matches(request.getAncienMotDePasse(), user.getPassword())) {
+            throw new RegistrationException("Ancien mot de passe incorrect");
+        }
+        user.setPassword(passwordEncoder.encode(request.getNouveauMotDePasse()));
+        user.setPasswordChanged(true);
+        userRepository.save(user);
+        auditEventProducer.publierEvenementAudit("CHANGE_PASSWORD", "User", user.getId());
     }
 }
