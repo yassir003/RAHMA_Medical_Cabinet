@@ -1,21 +1,37 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Plus, Edit2, Trash2, Eye } from 'lucide-react';
+import { getPatients, createPatient, updatePatient, deletePatient, Patient, PatientRequestDto } from '@/lib/api';
 
 export default function PatientsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewingPatient, setViewingPatient] = useState<any>(null);
+  const [viewingPatient, setViewingPatient] = useState<Patient | null>(null);
   
-  const [patients, setPatients] = useState([
-    { id: 1, nom: 'Smith', prenom: 'Alice', cin: 'AB123456', dob: '1990-05-15', phone: '+212 600-000000', address: '123 Main St', lastVisit: '2026-04-01', status: 'Active' },
-    { id: 2, nom: 'Johnson', prenom: 'Bob', cin: 'CD987654', dob: '1985-08-22', phone: '+212 611-111111', address: '456 Elm St', lastVisit: '2026-03-25', status: 'Active' },
-    { id: 3, nom: 'Davis', prenom: 'Charlie', cin: 'EF567123', dob: '1978-11-30', phone: '+212 622-222222', address: '789 Oak Ave', lastVisit: '2026-02-14', status: 'Inactive' },
-  ]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const initialForm = { nom: '', prenom: '', cin: '', dob: '', phone: '', address: '' };
-  const [formData, setFormData] = useState(initialForm);
+  const initialForm: PatientRequestDto = { nom: '', prenom: '', cin: '', dateNaissance: '', telephone: '', adresse: '', email: '', groupeSanguin: '', allergies: '', antecedents: '' };
+  const [formData, setFormData] = useState<PatientRequestDto>(initialForm);
+
+  const fetchPatients = async () => {
+    try {
+      setIsLoading(true);
+      const res = await getPatients(0, 100); // Fetch up to 100 for now, or implement pagination
+      setPatients(res.content);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || "Failed to load patients");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPatients();
+  }, []);
 
   const openAddModal = () => {
     setEditingId(null);
@@ -23,40 +39,46 @@ export default function PatientsPage() {
     setIsModalOpen(true);
   };
 
-  const openEditModal = (patient: any) => {
+  const openEditModal = (patient: Patient) => {
     setEditingId(patient.id);
     setFormData({
       nom: patient.nom,
       prenom: patient.prenom,
       cin: patient.cin,
-      dob: patient.dob,
-      phone: patient.phone,
-      address: patient.address || ''
+      dateNaissance: patient.dateNaissance || '',
+      telephone: patient.telephone || '',
+      adresse: patient.adresse || '',
+      email: patient.email || '',
+      groupeSanguin: patient.groupeSanguin || '',
+      allergies: patient.allergies || '',
+      antecedents: patient.antecedents || ''
     });
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (confirm('Etes-vous sûr de vouloir supprimer ce patient ?')) {
-      setPatients(patients.filter(p => p.id !== id));
+      try {
+        await deletePatient(id);
+        fetchPatients();
+      } catch (err: any) {
+        alert(err.message || "Erreur lors de la suppression");
+      }
     }
   };
 
-  const handleSubmit = () => {
-    if (editingId !== null) {
-      // Update
-      setPatients(patients.map(p => p.id === editingId ? { ...p, ...formData } : p));
-    } else {
-      // Add
-      const newPatient = {
-        id: Math.max(...patients.map(p => p.id), 0) + 1,
-        ...formData,
-        lastVisit: 'Nouveau',
-        status: 'Active'
-      };
-      setPatients([...patients, newPatient]);
+  const handleSubmit = async () => {
+    try {
+      if (editingId !== null) {
+        await updatePatient(editingId, formData);
+      } else {
+        await createPatient(formData);
+      }
+      setIsModalOpen(false);
+      fetchPatients();
+    } catch (err: any) {
+      alert(err.message || "Erreur lors de l'enregistrement");
     }
-    setIsModalOpen(false);
   };
 
   const filteredPatients = patients.filter(p => 
@@ -90,51 +112,57 @@ export default function PatientsPage() {
         </div>
 
         {/* Table */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
-              <th style={{ padding: '12px 16px', fontWeight: 500 }}>ID</th>
-              <th style={{ padding: '12px 16px', fontWeight: 500 }}>Name</th>
-              <th style={{ padding: '12px 16px', fontWeight: 500 }}>CIN</th>
-              <th style={{ padding: '12px 16px', fontWeight: 500 }}>Phone</th>
-              <th style={{ padding: '12px 16px', fontWeight: 500 }}>Last Visit</th>
-              <th style={{ padding: '12px 16px', fontWeight: 500 }}>Status</th>
-              <th style={{ padding: '12px 16px', fontWeight: 500, textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredPatients.map((patient) => (
-              <tr key={patient.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                <td style={{ padding: '16px' }}>#{patient.id.toString().padStart(4, '0')}</td>
-                <td style={{ padding: '16px', fontWeight: 500, color: 'var(--primary)' }}>{patient.prenom} {patient.nom}</td>
-                <td style={{ padding: '16px' }}>{patient.cin}</td>
-                <td style={{ padding: '16px' }}>{patient.phone}</td>
-                <td style={{ padding: '16px' }}>{patient.lastVisit}</td>
-                <td style={{ padding: '16px' }}>
-                  <span style={{ 
-                    padding: '4px 8px', 
-                    borderRadius: '12px', 
-                    fontSize: '12px', 
-                    fontWeight: 600,
-                    backgroundColor: patient.status === 'Active' ? '#20c26522' : '#e2e8f0',
-                    color: patient.status === 'Active' ? 'var(--success)' : 'var(--text-muted)'
-                  }}>
-                    {patient.status}
-                  </span>
-                </td>
-                <td style={{ padding: '16px', textAlign: 'right' }}>
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', color: 'var(--text-muted)' }}>
-                    <button onClick={() => setViewingPatient(patient)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }} title="View Record"><Eye size={18} /></button>
-                    <button onClick={() => openEditModal(patient)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }} title="Edit"><Edit2 size={18} /></button>
-                    <button onClick={() => handleDelete(patient.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }} title="Delete"><Trash2 size={18} /></button>
-                  </div>
-                </td>
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Chargement...</div>
+        ) : error ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#ef4444' }}>{error}</div>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                <th style={{ padding: '12px 16px', fontWeight: 500 }}>ID</th>
+                <th style={{ padding: '12px 16px', fontWeight: 500 }}>Name</th>
+                <th style={{ padding: '12px 16px', fontWeight: 500 }}>CIN</th>
+                <th style={{ padding: '12px 16px', fontWeight: 500 }}>Phone</th>
+                <th style={{ padding: '12px 16px', fontWeight: 500 }}>Last Visit</th>
+                <th style={{ padding: '12px 16px', fontWeight: 500 }}>Status</th>
+                <th style={{ padding: '12px 16px', fontWeight: 500, textAlign: 'right' }}>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredPatients.map((patient) => (
+                <tr key={patient.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '16px' }}>#{patient.id.toString().padStart(4, '0')}</td>
+                  <td style={{ padding: '16px', fontWeight: 500, color: 'var(--primary)' }}>{patient.prenom} {patient.nom}</td>
+                  <td style={{ padding: '16px' }}>{patient.cin}</td>
+                  <td style={{ padding: '16px' }}>{patient.telephone || '-'}</td>
+                  <td style={{ padding: '16px' }}>{'-'}</td>
+                  <td style={{ padding: '16px' }}>
+                    <span style={{ 
+                      padding: '4px 8px', 
+                      borderRadius: '12px', 
+                      fontSize: '12px', 
+                      fontWeight: 600,
+                      backgroundColor: '#20c26522',
+                      color: 'var(--success)'
+                    }}>
+                      Active
+                    </span>
+                  </td>
+                  <td style={{ padding: '16px', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', color: 'var(--text-muted)' }}>
+                      <button onClick={() => setViewingPatient(patient)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }} title="View Record"><Eye size={18} /></button>
+                      <button onClick={() => openEditModal(patient)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }} title="Edit"><Edit2 size={18} /></button>
+                      <button onClick={() => handleDelete(patient.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }} title="Delete"><Trash2 size={18} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
         
-        {filteredPatients.length === 0 && (
+        {!isLoading && filteredPatients.length === 0 && !error && (
            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Aucun patient trouvé.</div>
         )}
       </div>
@@ -156,10 +184,16 @@ export default function PatientsPage() {
               </div>
               <input value={formData.cin} onChange={e => setFormData({...formData, cin: e.target.value})} type="text" placeholder="Numéro de CIN" style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px' }} />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <input value={formData.dob} onChange={e => setFormData({...formData, dob: e.target.value})} type="date" placeholder="Date de naissance" style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px', color: '#64748b' }} />
-                <input value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} type="text" placeholder="Téléphone" style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px' }} />
+                <input value={formData.dateNaissance} onChange={e => setFormData({...formData, dateNaissance: e.target.value})} type="date" placeholder="Date de naissance" style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px', color: '#64748b' }} />
+                <input value={formData.telephone} onChange={e => setFormData({...formData, telephone: e.target.value})} type="text" placeholder="Téléphone" style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px' }} />
               </div>
-              <input value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} type="text" placeholder="Adresse" style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px' }} />
+              <input value={formData.adresse} onChange={e => setFormData({...formData, adresse: e.target.value})} type="text" placeholder="Adresse" style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <input value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} type="email" placeholder="Email" style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px' }} />
+                <input value={formData.groupeSanguin} onChange={e => setFormData({...formData, groupeSanguin: e.target.value})} type="text" placeholder="Groupe Sanguin" style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px' }} />
+              </div>
+              <input value={formData.allergies} onChange={e => setFormData({...formData, allergies: e.target.value})} type="text" placeholder="Allergies" style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px' }} />
+              <input value={formData.antecedents} onChange={e => setFormData({...formData, antecedents: e.target.value})} type="text" placeholder="Antécédents médicaux" style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px' }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' }}>
               <button onClick={() => setIsModalOpen(false)} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#f1f5f9', color: '#475569', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}>Annuler</button>
@@ -180,13 +214,17 @@ export default function PatientsPage() {
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
               <div><span style={{color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px'}}>Numéro CIN</span><div style={{fontWeight: 600, fontSize: '15px'}}>{viewingPatient.cin || '-'}</div></div>
-              <div><span style={{color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px'}}>Téléphone</span><div style={{fontWeight: 600, fontSize: '15px'}}>{viewingPatient.phone || '-'}</div></div>
-              <div><span style={{color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px'}}>Date de Naissance</span><div style={{fontWeight: 600, fontSize: '15px'}}>{viewingPatient.dob || '-'}</div></div>
-              <div><span style={{color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px'}}>Dernière Visite</span><div style={{fontWeight: 600, fontSize: '15px'}}>{viewingPatient.lastVisit || '-'}</div></div>
-              <div style={{gridColumn: '1 / span 2'}}><span style={{color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px'}}>Adresse</span><div style={{fontWeight: 600, fontSize: '15px'}}>{viewingPatient.address || '-'}</div></div>
+              <div><span style={{color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px'}}>Téléphone</span><div style={{fontWeight: 600, fontSize: '15px'}}>{viewingPatient.telephone || '-'}</div></div>
+              <div><span style={{color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px'}}>Date de Naissance</span><div style={{fontWeight: 600, fontSize: '15px'}}>{viewingPatient.dateNaissance || '-'}</div></div>
+              <div><span style={{color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px'}}>Dernière Visite</span><div style={{fontWeight: 600, fontSize: '15px'}}>{'-'}</div></div>
+              <div style={{gridColumn: '1 / span 2'}}><span style={{color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px'}}>Adresse</span><div style={{fontWeight: 600, fontSize: '15px'}}>{viewingPatient.adresse || '-'}</div></div>
+              <div><span style={{color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px'}}>Email</span><div style={{fontWeight: 600, fontSize: '15px'}}>{viewingPatient.email || '-'}</div></div>
+              <div><span style={{color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px'}}>Groupe Sanguin</span><div style={{fontWeight: 600, fontSize: '15px'}}>{viewingPatient.groupeSanguin || '-'}</div></div>
+              <div style={{gridColumn: '1 / span 2'}}><span style={{color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px'}}>Allergies</span><div style={{fontWeight: 600, fontSize: '15px'}}>{viewingPatient.allergies || '-'}</div></div>
+              <div style={{gridColumn: '1 / span 2'}}><span style={{color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px'}}>Antécédents Médicaux</span><div style={{fontWeight: 600, fontSize: '15px'}}>{viewingPatient.antecedents || '-'}</div></div>
               <div><span style={{color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px'}}>Statut</span>
-                <span style={{ display: 'inline-block', padding: '4px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600, backgroundColor: viewingPatient.status === 'Active' ? '#20c26522' : '#e2e8f0', color: viewingPatient.status === 'Active' ? 'var(--success)' : 'var(--text-muted)' }}>
-                  {viewingPatient.status}
+                <span style={{ display: 'inline-block', padding: '4px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600, backgroundColor: '#20c26522', color: 'var(--success)' }}>
+                  Active
                 </span>
               </div>
             </div>

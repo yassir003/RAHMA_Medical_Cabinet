@@ -37,12 +37,29 @@ async function request<T>(
 ): Promise<T> {
   const url = `${BASE_URL}${endpoint}`;
 
+  // Try to attach token from localStorage if we're in the browser
+  const headers = new Headers(options.headers || {});
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem("rahma_auth_user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.token) {
+          headers.set("Authorization", `Bearer ${parsed.token}`);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   const res = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
     ...options,
+    headers,
   });
 
   if (!res.ok) {
@@ -84,5 +101,83 @@ export async function login(
   return request<AuthResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
+  });
+}
+
+// ----- Patient endpoints ---------------------------------------------------
+
+export interface Patient {
+  id: number;
+  nom: string;
+  prenom: string;
+  cin: string;
+  dateNaissance: string;
+  telephone: string;
+  adresse: string;
+  groupeSanguin?: string;
+  allergies?: string;
+  antecedents?: string;
+  email?: string;
+}
+
+export interface PatientRequestDto {
+  nom: string;
+  prenom: string;
+  cin: string;
+  dateNaissance?: string;
+  telephone?: string;
+  adresse?: string;
+  groupeSanguin?: string;
+  allergies?: string;
+  antecedents?: string;
+  email?: string;
+  password?: string;
+}
+
+export interface PaginatedResponse<T> {
+  content: T[];
+  pageable: any;
+  last: boolean;
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  first: boolean;
+  numberOfElements: number;
+  empty: boolean;
+}
+
+export async function getPatients(
+  page: number = 0,
+  size: number = 10,
+  search: string = ""
+): Promise<PaginatedResponse<Patient>> {
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+  });
+  if (search) {
+    queryParams.append("search", search);
+  }
+  return request<PaginatedResponse<Patient>>(`/patients?${queryParams.toString()}`);
+}
+
+export async function createPatient(data: PatientRequestDto): Promise<Patient> {
+  return request<Patient>("/patients", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updatePatient(id: number, data: PatientRequestDto): Promise<Patient> {
+  return request<Patient>(`/patients/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deletePatient(id: number): Promise<void> {
+  return request<void>(`/patients/${id}`, {
+    method: "DELETE",
   });
 }
