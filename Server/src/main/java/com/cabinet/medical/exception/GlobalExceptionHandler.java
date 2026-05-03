@@ -14,6 +14,11 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(RegistrationException.class)
+    public ResponseEntity<Map<String, Object>> handleRegistration(RegistrationException ex) {
+        return buildResponse(409, "Erreur d'inscription", ex.getMessage());
+    }
+
     @ExceptionHandler(ConflitHoraireException.class)
     public ResponseEntity<Map<String, Object>> handleConflitHoraire(ConflitHoraireException ex) {
         return buildResponse(409, "Conflit d'horaire", ex.getMessage());
