@@ -6,11 +6,17 @@ const BASE_URL = "/api/v1";
 
 // ----- Types ---------------------------------------------------------------
 
+export interface PageItem {
+  name: string;
+  path: string;
+}
+
 export interface AuthResponse {
   token: string;
   type: string;   // e.g. "Bearer"
   email: string;
   role: "ADMIN" | "MEDECIN" | "SECRETAIRE" | "PATIENT";
+  pages?: PageItem[];
 }
 
 export class ApiError extends Error {
@@ -60,7 +66,13 @@ async function request<T>(
     throw new ApiError(message, res.status);
   }
 
-  return res.json() as Promise<T>;
+  const json = await res.json();
+  // Handle Spring Boot ApiResponse structure
+  if (json && json.data !== undefined) {
+    return json.data as T;
+  }
+  
+  return json as T;
 }
 
 // ----- Auth endpoints ------------------------------------------------------

@@ -9,10 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AuthResponse {
-    private String token;
-    private String type = "Bearer";
-    private String email;
-    private String role;
-    private java.util.List<PageItem> pages;
+public class PageItem {
+    private String name;
+    private String path;
 }

@@ -11,7 +11,11 @@ import com.cabinet.medical.messaging.producer.AuditEventProducer;
 import com.cabinet.medical.repository.PatientRepository;
 import com.cabinet.medical.repository.UserRepository;
 import com.cabinet.medical.security.JwtTokenProvider;
+import com.cabinet.medical.dto.response.PageItem;
 import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Arrays;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -43,8 +47,64 @@ public class AuthService {
             .type("Bearer")
             .email(userDetails.getUsername())
             .role(role)
+            .pages(getPagesForRole(role))
             .build();
     }
+
+    private List<PageItem> getPagesForRole(String role) {
+        List<PageItem> base = Arrays.asList(
+            new PageItem("Dashboard", "/dashboard"),
+            new PageItem("Appointment", "/dashboard/appointments")
+        );
+
+        List<PageItem> pages = new ArrayList<>(base);
+
+        switch (role) {
+            case "ADMIN":
+                pages.addAll(Arrays.asList(
+                    new PageItem("Medical Report", "/dashboard/reports"),
+                    new PageItem("Patient", "/dashboard/patients"),
+                    new PageItem("Doctor", "/dashboard/doctors"),
+                    new PageItem("Doctors list", "/dashboard/doctors/list"),
+                    new PageItem("Create Doctor", "/dashboard/doctors/create"),
+                    new PageItem("Secretary", "/dashboard/secretary"),
+                    new PageItem("Secretary list", "/dashboard/secretary/list"),
+                    new PageItem("Create Secretary", "/dashboard/secretary/create"),
+                    new PageItem("Log", "/dashboard/settings")
+                ));
+                break;
+            case "MEDECIN":
+                pages.addAll(Arrays.asList(
+                    new PageItem("Workspace", "/dashboard/doctors"),
+                    new PageItem("Medical Report", "/dashboard/reports"),
+                    new PageItem("Patient", "/dashboard/patients"),
+                    new PageItem("Message", "/dashboard/messages"),
+                    new PageItem("Setting", "/dashboard/settings")
+                ));
+                break;
+            case "SECRETAIRE":
+                pages = new ArrayList<>(Arrays.asList(
+                    new PageItem("Workspace", "/dashboard/secretary"),
+                    new PageItem("Appointment", "/dashboard/appointments"),
+                    new PageItem("Patient", "/dashboard/patients"),
+                    new PageItem("Mutuals", "/dashboard/mutuals"),
+                    new PageItem("Message", "/dashboard/messages"),
+                    new PageItem("Setting", "/dashboard/settings")
+                ));
+                break;
+            case "PATIENT":
+                pages.addAll(Arrays.asList(
+                    new PageItem("My Reports", "/dashboard/reports"),
+                    new PageItem("Message", "/dashboard/messages"),
+                    new PageItem("Setting", "/dashboard/settings")
+                ));
+                break;
+            default:
+                break;
+        }
+        return pages;
+    }
+
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -89,6 +149,7 @@ public class AuthService {
             .type("Bearer")
             .email(user.getEmail())
             .role("PATIENT")
+            .pages(getPagesForRole("PATIENT"))
             .build();
     }
 }

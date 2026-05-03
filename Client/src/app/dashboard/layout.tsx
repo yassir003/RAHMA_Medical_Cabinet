@@ -14,54 +14,38 @@ import {
 // Menu configuration per role
 // ---------------------------------------------------------------------------
 
-function getMenuItems(role: Role) {
-  const base = [
-    { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-    { name: 'Appointment', icon: CalendarRange, path: '/dashboard/appointments' },
-  ];
+// ---------------------------------------------------------------------------
+// Map backend page names to icons
+// ---------------------------------------------------------------------------
 
-  switch (role) {
-    case 'ADMIN':
-      return [...base,
-        { name: 'Medical Report', icon: FileText, path: '/dashboard/reports' },
-        { name: 'Patient', icon: Users, path: '/dashboard/patients' },
-        { name: 'Doctor', icon: Stethoscope, path: '/dashboard/doctors' },
-        { name: 'Doctors list', icon: Stethoscope, path: '/dashboard/doctors/list' },
-        { name: 'Create Doctor', icon: UserPlus, path: '/dashboard/doctors/create' },
-        { name: 'Secretary', icon: Users, path: '/dashboard/secretary' },
-        { name: 'Secretary list', icon: Users, path: '/dashboard/secretary/list' },
-        { name: 'Create Secretary', icon: UserPlus, path: '/dashboard/secretary/create' },
-        { name: 'Log', icon: Settings, path: '/dashboard/settings' },
-      ];
-
-    case 'MEDECIN':
-      return [...base,
-        { name: 'Workspace', icon: Stethoscope, path: '/dashboard/doctors' },
-        { name: 'Medical Report', icon: FileText, path: '/dashboard/reports' },
-        { name: 'Patient', icon: Users, path: '/dashboard/patients' },
-        { name: 'Message', icon: MessageSquare, path: '/dashboard/messages' },
-        { name: 'Setting', icon: Settings, path: '/dashboard/settings' },
-      ];
-
-    case 'SECRETAIRE':
-      return [
-        { name: 'Workspace', icon: LayoutDashboard, path: '/dashboard/secretary' },
-        { name: 'Appointment', icon: CalendarRange, path: '/dashboard/appointments' },
-        { name: 'Patient', icon: Users, path: '/dashboard/patients' },
-        { name: 'Mutuals', icon: FileText, path: '/dashboard/mutuals' },
-        { name: 'Message', icon: MessageSquare, path: '/dashboard/messages' },
-        { name: 'Setting', icon: Settings, path: '/dashboard/settings' },
-      ];
-
-    case 'PATIENT':
-      return [...base,
-        { name: 'My Reports', icon: FileText, path: '/dashboard/reports' },
-        { name: 'Message', icon: MessageSquare, path: '/dashboard/messages' },
-        { name: 'Setting', icon: Settings, path: '/dashboard/settings' },
-      ];
-
+function getIconForPage(name: string) {
+  switch (name) {
+    case 'Dashboard':
+    case 'Workspace':
+      return LayoutDashboard;
+    case 'Appointment':
+      return CalendarRange;
+    case 'Medical Report':
+    case 'My Reports':
+    case 'Mutuals':
+      return FileText;
+    case 'Patient':
+    case 'Secretary':
+    case 'Secretary list':
+      return Users;
+    case 'Doctor':
+    case 'Doctors list':
+      return Stethoscope;
+    case 'Create Doctor':
+    case 'Create Secretary':
+      return UserPlus;
+    case 'Message':
+      return MessageSquare;
+    case 'Log':
+    case 'Setting':
+      return Settings;
     default:
-      return base;
+      return LayoutDashboard;
   }
 }
 
@@ -90,7 +74,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // user is guaranteed non-null inside ProtectedRoute, but TS needs a guard
   const role: Role = user?.role ?? 'PATIENT';
   const email = user?.email ?? '';
-  const menuItems = getMenuItems(role);
+  
+  // Map backend pages to menu items with icons
+  const menuItems = (user?.pages || []).map(page => ({
+    name: page.name,
+    path: page.path,
+    icon: getIconForPage(page.name)
+  }));
 
   return (
     <ProtectedRoute>
