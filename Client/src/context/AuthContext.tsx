@@ -9,7 +9,7 @@ import React, {
   useMemo,
 } from "react";
 import { useRouter } from "next/navigation";
-import { login as apiLogin, type AuthResponse, ApiError } from "@/lib/api";
+import { login as apiLogin, type AuthResponse, type PageItem, ApiError } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -21,6 +21,7 @@ export interface AuthUser {
   email: string;
   role: Role;
   token: string;
+  pages?: PageItem[];
 }
 
 interface AuthContextValue {
@@ -96,6 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: res.email,
         role: res.role,
         token: res.token,
+        pages: res.pages,
       };
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(authUser));
