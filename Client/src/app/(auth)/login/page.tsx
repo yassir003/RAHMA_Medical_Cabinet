@@ -1,49 +1,94 @@
 "use client";
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { ApiError } from '@/lib/api';
 
 export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const { login } = useAuth();
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('isLoggedIn', 'true');
-    router.push('/dashboard');
+    setError('');
+
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter both email and password');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await login(email, password);
+      // redirect is handled inside AuthContext.login()
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else if (err instanceof TypeError) {
+        setError('Cannot reach the server — is it running?');
+      } else {
+        setError('An unexpected error occurred');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div style={{ maxWidth: '420px', margin: '0 auto', width: '100%' }}>
       <h1 style={{ fontSize: '32px', fontWeight: 600, color: '#0f172a', marginBottom: '16px', marginTop: '0' }}>Login</h1>
       <p style={{ color: '#94a3b8', fontSize: '14px', lineHeight: 1.6, marginBottom: '40px' }}>
-        Lorem Ipsum is simply dummy text of the printing and
-        typesetting industry.
+        Sign in to access your Rahma Medical Cabinet dashboard.
       </p>
       
+      {error && (
+        <div style={{
+          padding: '12px 16px',
+          marginBottom: '24px',
+          borderRadius: '8px',
+          backgroundColor: '#fef2f2',
+          border: '1px solid #fecaca',
+          color: '#dc2626',
+          fontSize: '14px',
+          fontWeight: 500,
+        }}>
+          {error}
+        </div>
+      )}
+
       <form onSubmit={handleLogin}>
         <div style={{ marginBottom: '24px' }}>
           <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, color: '#334155', marginBottom: '10px' }}>
-            User name
+            Email
           </label>
           <input 
-            type="text" 
-            placeholder="Lorem lorem" 
-            style={{ width: '100%', padding: '16px', border: '1px solid #20c265', borderRadius: '8px', fontSize: '14px', color: '#0f172a', outline: 'none', boxSizing: 'border-box' }}
-            defaultValue="Lorem lorem"
+            type="email" 
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
+            style={{ width: '100%', padding: '16px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', color: '#0f172a', outline: 'none', boxSizing: 'border-box', opacity: loading ? 0.6 : 1 }}
           />
         </div>
 
         <div style={{ marginBottom: '24px' }}>
           <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, color: '#334155', marginBottom: '10px' }}>
-            Enter your Password
+            Password
           </label>
           <div style={{ position: 'relative' }}>
             <input 
               type={showPassword ? "text" : "password"} 
-              placeholder="Type your password here" 
-              style={{ width: '100%', padding: '16px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', color: '#0f172a', outline: 'none', boxSizing: 'border-box', paddingRight: '44px' }}
+              placeholder="Type your password here"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+              style={{ width: '100%', padding: '16px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', color: '#0f172a', outline: 'none', boxSizing: 'border-box', paddingRight: '44px', opacity: loading ? 0.6 : 1 }}
             />
             <span 
               onClick={() => setShowPassword(!showPassword)}
@@ -59,13 +104,34 @@ export default function LoginPage() {
             <input type="checkbox" style={{ width: '16px', height: '16px', accentColor: '#cbd5e1', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
             Remember me?
           </label>
-          <Link href="/forgot" style={{ color: '#94a3b8', textDecoration: 'none' }}>Forgot Passowrd ?</Link>
+          <Link href="/forgot" style={{ color: '#94a3b8', textDecoration: 'none' }}>Forgot Password?</Link>
         </div>
 
-        <button type="submit" style={{ width: '100%', padding: '16px', fontSize: '16px', fontWeight: 600, borderRadius: '8px', backgroundColor: '#2fb5fc', color: 'white', border: 'none', cursor: 'pointer' }}>
-          Login
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '16px',
+            fontSize: '16px',
+            fontWeight: 600,
+            borderRadius: '8px',
+            backgroundColor: loading ? '#7dd3fc' : '#2fb5fc',
+            color: 'white',
+            border: 'none',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            transition: 'background-color 0.2s',
+          }}
+        >
+          {loading && <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />}
+          {loading ? 'Signing in…' : 'Login'}
         </button>
 
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </form>
     </div>
   );
