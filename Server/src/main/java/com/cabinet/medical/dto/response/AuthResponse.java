@@ -14,5 +14,6 @@ public class AuthResponse {
     private String type = "Bearer";
     private String email;
     private String role;
+    private boolean passwordChanged;
     private java.util.List<PageItem> pages;
 }

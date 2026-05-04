@@ -1,0 +1,85 @@
+version: "3.8"
+
+services:
+  # ── MySQL 8 ──────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8
+    container_name: cabinet_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: cabinet_medical
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ── ActiveMQ 5.15 ────────────────────────────────────────────────────────
+  activemq:
+    image: rmohr/activemq:5.15.9
+    container_name: cabinet_activemq
+    restart: unless-stopped
+    ports:
+      - "61616:61616"   # JMS broker
+      - "8161:8161"     # Web console (admin / admin)
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8161/admin/ -u admin:admin || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+
+  # ── Spring Boot backend ──────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./Server
+      dockerfile: Dockerfile
+    container_name: cabinet_backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/cabinet_medical?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Africa/Casablanca
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_ACTIVEMQ_BROKER_URL: tcp://activemq:61616
+      SPRING_ACTIVEMQ_USER: admin
+      SPRING_ACTIVEMQ_PASSWORD: admin
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+      JWT_SECRET: cabinet_medical_secret_key_256bits_change_in_production
+      JWT_EXPIRATION: 86400000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      activemq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  # ── Next.js frontend ─────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./Client
+      dockerfile: Dockerfile
+      args:
+        DOCKER_BUILD: "1"
+    container_name: cabinet_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:8080
+      DOCKER_BUILD: "1"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  mysql_data:

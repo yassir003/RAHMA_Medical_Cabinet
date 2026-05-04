@@ -1,5 +1,6 @@
 package com.cabinet.medical.security;
 
+import com.cabinet.medical.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,12 +24,19 @@ public class JwtTokenProvider {
     }
 
     public String generateToken(UserDetails userDetails) {
-        return Jwts.builder()
+        var builder = Jwts.builder()
             .subject(userDetails.getUsername())
             .issuedAt(new Date())
-            .expiration(new Date(System.currentTimeMillis() + expiration))
-            .signWith(getSigningKey())
-            .compact();
+            .expiration(new Date(System.currentTimeMillis() + expiration));
+
+        if (userDetails instanceof User user) {
+            builder
+                .claim("role", user.getRole().name())
+                .claim("userId", user.getId())
+                .claim("passwordChanged", user.isPasswordChanged());
+        }
+
+        return builder.signWith(getSigningKey()).compact();
     }
 
     public boolean validateToken(String token) {

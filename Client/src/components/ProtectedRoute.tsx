@@ -15,14 +15,16 @@ export default function ProtectedRoute({
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace("/login");
+    } else if (!isLoading && isAuthenticated && user?.passwordChanged === false) {
+      router.replace("/change-password");
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, user, router]);
 
   if (isLoading) {
     return (
@@ -52,6 +54,10 @@ export default function ProtectedRoute({
 
   if (!isAuthenticated) {
     return null; // Will redirect via the useEffect above
+  }
+
+  if (user?.passwordChanged === false) {
+    return null; // Will redirect to /change-password via the useEffect above
   }
 
   return <>{children}</>;

@@ -45,11 +45,13 @@ public class AuthService {
         String token = jwtTokenProvider.generateToken(userDetails);
         String role = userDetails.getAuthorities().stream()
             .findFirst().map(a -> a.getAuthority().replace("ROLE_", "")).orElse("");
+        boolean pwChanged = (userDetails instanceof User u) && u.isPasswordChanged();
         return AuthResponse.builder()
             .token(token)
             .type("Bearer")
             .email(userDetails.getUsername())
             .role(role)
+            .passwordChanged(pwChanged)
             .pages(getPagesForRole(role))
             .build();
     }

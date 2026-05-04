@@ -3,6 +3,7 @@
 // ---------------------------------------------------------------------------
 
 const BASE_URL = "/api/v1";
+const STORAGE_KEY = "rahma_auth_user";
 
 // ----- Types ---------------------------------------------------------------
 
@@ -13,23 +14,33 @@ export interface PageItem {
 
 export interface AuthResponse {
   token: string;
-  type: string;   // e.g. "Bearer"
+  type: string;          // "Bearer"
   email: string;
   role: "ADMIN" | "MEDECIN" | "SECRETAIRE" | "PATIENT";
+  passwordChanged: boolean;
   pages?: PageItem[];
 }
 
 export class ApiError extends Error {
   status: number;
+  errorCode?: string;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, errorCode?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.errorCode = errorCode;
   }
 }
 
 // ----- Helpers -------------------------------------------------------------
+
+function clearAuthAndRedirect(path: string) {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(STORAGE_KEY);
+    window.location.href = path;
+  }
+}
 
 async function request<T>(
   endpoint: string,
@@ -37,7 +48,6 @@ async function request<T>(
 ): Promise<T> {
   const url = `${BASE_URL}${endpoint}`;
 
-  // Try to attach token from localStorage if we're in the browser
   const headers = new Headers(options.headers || {});
   if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -45,7 +55,7 @@ async function request<T>(
 
   if (typeof window !== "undefined") {
     try {
-      const stored = localStorage.getItem("rahma_auth_user");
+      const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed?.token) {
@@ -57,54 +67,116 @@ async function request<T>(
     }
   }
 
-  const res = await fetch(url, {
-    ...options,
-    headers,
-  });
+  const res = await fetch(url, { ...options, headers });
 
   if (!res.ok) {
-    let message = "Something went wrong";
+    let message = "Une erreur est survenue";
+    let errorCode: string | undefined;
+
+    // Try to read JSON error body
+    try {
+      const body = await res.json();
+      message = body.message || body.error || message;
+      errorCode = body.error;
+    } catch {
+      // body wasn't JSON
+    }
 
     if (res.status === 401) {
-      message = "Invalid email or password";
-    } else if (res.status === 429) {
-      message = "Too many requests — please try again later";
-    } else if (res.status >= 500) {
-      message = "Server error — please try again later";
-    } else {
-      try {
-        const body = await res.json();
-        message = body.message || body.error || message;
-      } catch {
-        // body wasn't JSON — keep the default message
+      // Stale or invalid token → clear and redirect to login
+      clearAuthAndRedirect("/login");
+      throw new ApiError("Session expirée — veuillez vous reconnecter", 401, errorCode);
+    }
+
+    if (res.status === 403) {
+      if (errorCode === "PASSWORD_CHANGE_REQUIRED" || message.includes("changer votre mot de passe")) {
+        clearAuthAndRedirect("/change-password");
+        throw new ApiError(message, 403, "PASSWORD_CHANGE_REQUIRED");
       }
     }
 
-    throw new ApiError(message, res.status);
+    if (res.status === 429) {
+      throw new ApiError("Trop de tentatives — réessayez dans 1 minute", 429);
+    }
+
+    if (res.status >= 500) {
+      throw new ApiError("Erreur serveur — réessayez plus tard", res.status);
+    }
+
+    throw new ApiError(message, res.status, errorCode);
   }
 
+  // Unwrap Spring Boot ApiResponse envelope { success, data, message, ... }
   const json = await res.json();
-  // Handle Spring Boot ApiResponse structure
   if (json && json.data !== undefined) {
     return json.data as T;
   }
-  
   return json as T;
 }
 
-// ----- Auth endpoints ------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Auth endpoints
+// ---------------------------------------------------------------------------
 
-export async function login(
-  email: string,
-  password: string
-): Promise<AuthResponse> {
+export async function login(email: string, password: string): Promise<AuthResponse> {
   return request<AuthResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
 }
 
-// ----- Patient endpoints ---------------------------------------------------
+export interface RegisterRequestDto {
+  nom: string;
+  prenom: string;
+  cin: string;
+  dateNaissance?: string;
+  telephone?: string;
+  adresse?: string;
+  email: string;
+  password: string;
+}
+
+export async function register(data: RegisterRequestDto): Promise<AuthResponse> {
+  return request<AuthResponse>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export interface ChangePasswordDto {
+  ancienMotDePasse: string;
+  nouveauMotDePasse: string;
+}
+
+export async function changePasswordApi(data: ChangePasswordDto): Promise<void> {
+  return request<void>("/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard stats
+// ---------------------------------------------------------------------------
+
+export interface DashboardStats {
+  totalPatients: number;
+  totalMedecins: number;
+  totalRendezVous: number;
+  totalConsultations: number;
+  rdvAujourdhui: number;
+  rdvPlanifies: number;
+  dossierEnAttente: number;
+  patientsParMutuelle: Record<string, number>;
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  return request<DashboardStats>("/dashboard/stats");
+}
+
+// ---------------------------------------------------------------------------
+// Patient endpoints
+// ---------------------------------------------------------------------------
 
 export interface Patient {
   id: number;
@@ -131,12 +203,11 @@ export interface PatientRequestDto {
   allergies?: string;
   antecedents?: string;
   email?: string;
-  password?: string;
 }
 
 export interface PaginatedResponse<T> {
   content: T[];
-  pageable: any;
+  pageable: unknown;
   last: boolean;
   totalPages: number;
   totalElements: number;
@@ -148,41 +219,122 @@ export interface PaginatedResponse<T> {
 }
 
 export async function getPatients(
-  page: number = 0,
-  size: number = 10,
-  search: string = ""
+  page = 0,
+  size = 10,
+  search = ""
 ): Promise<PaginatedResponse<Patient>> {
-  const queryParams = new URLSearchParams({
-    page: page.toString(),
-    size: size.toString(),
-  });
-  if (search) {
-    queryParams.append("search", search);
-  }
-  return request<PaginatedResponse<Patient>>(`/patients?${queryParams.toString()}`);
+  const q = new URLSearchParams({ page: String(page), size: String(size) });
+  if (search) q.append("search", search);
+  return request<PaginatedResponse<Patient>>(`/patients?${q}`);
 }
 
 export async function createPatient(data: PatientRequestDto): Promise<Patient> {
-  return request<Patient>("/patients", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+  return request<Patient>("/patients", { method: "POST", body: JSON.stringify(data) });
 }
 
 export async function updatePatient(id: number, data: PatientRequestDto): Promise<Patient> {
-  return request<Patient>(`/patients/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
+  return request<Patient>(`/patients/${id}`, { method: "PUT", body: JSON.stringify(data) });
 }
 
 export async function deletePatient(id: number): Promise<void> {
-  return request<void>(`/patients/${id}`, {
-    method: "DELETE",
-  });
+  return request<void>(`/patients/${id}`, { method: "DELETE" });
 }
 
-// ----- Secretaire endpoints ------------------------------------------------
+// ---------------------------------------------------------------------------
+// Medecin endpoints
+// ---------------------------------------------------------------------------
+
+export interface Medecin {
+  id: number;
+  nom: string;
+  prenom: string;
+  specialite: string;
+  telephone: string;
+  email: string;
+}
+
+export interface MedecinRequestDto {
+  nom: string;
+  prenom: string;
+  specialite: string;
+  telephone?: string;
+  email: string;
+  password: string;
+  disponible?: boolean;
+}
+
+export async function getMedecins(
+  page = 0,
+  size = 10,
+  search = ""
+): Promise<PaginatedResponse<Medecin>> {
+  const q = new URLSearchParams({ page: String(page), size: String(size) });
+  if (search) q.append("search", search);
+  return request<PaginatedResponse<Medecin>>(`/medecins?${q}`);
+}
+
+export async function createMedecin(data: MedecinRequestDto): Promise<Medecin> {
+  return request<Medecin>("/medecins", { method: "POST", body: JSON.stringify(data) });
+}
+
+export async function updateMedecin(id: number, data: Partial<MedecinRequestDto>): Promise<Medecin> {
+  return request<Medecin>(`/medecins/${id}`, { method: "PUT", body: JSON.stringify(data) });
+}
+
+export async function deleteMedecin(id: number): Promise<void> {
+  return request<void>(`/medecins/${id}`, { method: "DELETE" });
+}
+
+// ---------------------------------------------------------------------------
+// Rendez-vous endpoints
+// ---------------------------------------------------------------------------
+
+export interface RendezVous {
+  id: number;
+  dateHeure: string;
+  motif: string;
+  notes?: string;
+  statut: "PLANIFIE" | "CONFIRME" | "ANNULE" | "TERMINE";
+  patientId: number;
+  patientNom: string;
+  patientPrenom: string;
+  medecinId: number;
+  medecinNom: string;
+  medecinPrenom: string;
+  medecinSpecialite: string;
+}
+
+export interface RendezVousRequestDto {
+  patientId: number;
+  medecinId: number;
+  dateHeure: string;
+  motif: string;
+  notes?: string;
+  type?: string;
+}
+
+export async function getRendezVous(
+  page = 0,
+  size = 20
+): Promise<PaginatedResponse<RendezVous>> {
+  const q = new URLSearchParams({ page: String(page), size: String(size) });
+  return request<PaginatedResponse<RendezVous>>(`/rendez-vous?${q}`);
+}
+
+export async function createRendezVous(data: RendezVousRequestDto): Promise<RendezVous> {
+  return request<RendezVous>("/rendez-vous", { method: "POST", body: JSON.stringify(data) });
+}
+
+export async function updateRendezVousStatut(
+  id: number,
+  statut: string
+): Promise<RendezVous> {
+  return request<RendezVous>(`/rendez-vous/${id}/statut?statut=${statut}`, { method: "PATCH" });
+}
+
+// ---------------------------------------------------------------------------
+// Secrétaire endpoints
+// ---------------------------------------------------------------------------
 
 export interface Secretaire {
   id: number;
@@ -202,36 +354,23 @@ export interface SecretaireRequestDto {
 }
 
 export async function getSecretaires(
-  page: number = 0,
-  size: number = 10,
-  search: string = ""
+  page = 0,
+  size = 10,
+  search = ""
 ): Promise<PaginatedResponse<Secretaire>> {
-  const queryParams = new URLSearchParams({
-    page: page.toString(),
-    size: size.toString(),
-  });
-  if (search) {
-    queryParams.append("search", search);
-  }
-  return request<PaginatedResponse<Secretaire>>(`/secretaires?${queryParams.toString()}`);
+  const q = new URLSearchParams({ page: String(page), size: String(size) });
+  if (search) q.append("search", search);
+  return request<PaginatedResponse<Secretaire>>(`/secretaires?${q}`);
 }
 
 export async function createSecretaire(data: SecretaireRequestDto): Promise<Secretaire> {
-  return request<Secretaire>("/secretaires", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+  return request<Secretaire>("/secretaires", { method: "POST", body: JSON.stringify(data) });
 }
 
 export async function updateSecretaire(id: number, data: SecretaireRequestDto): Promise<Secretaire> {
-  return request<Secretaire>(`/secretaires/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
+  return request<Secretaire>(`/secretaires/${id}`, { method: "PUT", body: JSON.stringify(data) });
 }
 
 export async function deleteSecretaire(id: number): Promise<void> {
-  return request<void>(`/secretaires/${id}`, {
-    method: "DELETE",
-  });
+  return request<void>(`/secretaires/${id}`, { method: "DELETE" });
 }

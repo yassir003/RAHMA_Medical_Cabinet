@@ -9,7 +9,15 @@ import React, {
   useMemo,
 } from "react";
 import { useRouter } from "next/navigation";
-import { login as apiLogin, type AuthResponse, type PageItem, ApiError } from "@/lib/api";
+import {
+  login as apiLogin,
+  register as apiRegister,
+  changePasswordApi,
+  type AuthResponse,
+  type PageItem,
+  type RegisterRequestDto,
+  ApiError,
+} from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -21,6 +29,7 @@ export interface AuthUser {
   email: string;
   role: Role;
   token: string;
+  passwordChanged: boolean;
   pages?: PageItem[];
 }
 
@@ -29,20 +38,16 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (data: RegisterRequestDto) => Promise<void>;
+  changePassword: (ancien: string, nouveau: string) => Promise<void>;
   logout: () => void;
 }
 
 // ---------------------------------------------------------------------------
-// Storage keys
+// Storage key
 // ---------------------------------------------------------------------------
 
 const STORAGE_KEY = "rahma_auth_user";
-
-// ---------------------------------------------------------------------------
-// Context
-// ---------------------------------------------------------------------------
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 // ---------------------------------------------------------------------------
 // Role → default landing page
@@ -50,18 +55,19 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function defaultRouteForRole(role: Role): string {
   switch (role) {
-    case "ADMIN":
-      return "/dashboard";
-    case "MEDECIN":
-      return "/dashboard/doctors";
-    case "SECRETAIRE":
-      return "/dashboard/secretary";
-    case "PATIENT":
-      return "/dashboard/appointments";
-    default:
-      return "/dashboard";
+    case "ADMIN":      return "/dashboard";
+    case "MEDECIN":    return "/dashboard/doctors";
+    case "SECRETAIRE": return "/dashboard/secretary";
+    case "PATIENT":    return "/dashboard/appointments";
+    default:           return "/dashboard";
   }
 }
+
+// ---------------------------------------------------------------------------
+// Context
+// ---------------------------------------------------------------------------
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 // ---------------------------------------------------------------------------
 // Provider
@@ -89,6 +95,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Persist user to localStorage whenever it changes
+  const persistUser = useCallback((authUser: AuthUser | null) => {
+    if (authUser) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(authUser));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    setUser(authUser);
+  }, []);
+
   const login = useCallback(
     async (email: string, password: string) => {
       const res: AuthResponse = await apiLogin(email, password);
@@ -97,23 +113,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: res.email,
         role: res.role,
         token: res.token,
+        passwordChanged: res.passwordChanged,
         pages: res.pages,
       };
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(authUser));
-      setUser(authUser);
+      persistUser(authUser);
 
-      // Navigate to role-appropriate page
-      router.push(defaultRouteForRole(authUser.role));
+      // Patients with a temporary password must change it before anything else
+      if (!res.passwordChanged) {
+        router.push("/change-password");
+      } else {
+        router.push(defaultRouteForRole(authUser.role));
+      }
     },
-    [router]
+    [router, persistUser]
+  );
+
+  const register = useCallback(
+    async (data: RegisterRequestDto) => {
+      const res: AuthResponse = await apiRegister(data);
+
+      const authUser: AuthUser = {
+        email: res.email,
+        role: res.role,
+        token: res.token,
+        passwordChanged: res.passwordChanged,
+        pages: res.pages,
+      };
+
+      persistUser(authUser);
+
+      // Self-registered patients start with passwordChanged=false (set via /auth/register)
+      if (!res.passwordChanged) {
+        router.push("/change-password");
+      } else {
+        router.push(defaultRouteForRole(authUser.role));
+      }
+    },
+    [router, persistUser]
+  );
+
+  const changePassword = useCallback(
+    async (ancien: string, nouveau: string) => {
+      await changePasswordApi({ ancienMotDePasse: ancien, nouveauMotDePasse: nouveau });
+
+      // Mark passwordChanged in local state and storage
+      if (user) {
+        const updated: AuthUser = { ...user, passwordChanged: true };
+        persistUser(updated);
+        router.push(defaultRouteForRole(user.role));
+      }
+    },
+    [user, router, persistUser]
   );
 
   const logout = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    setUser(null);
+    persistUser(null);
     router.push("/login");
-  }, [router]);
+  }, [router, persistUser]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -121,9 +178,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: !!user,
       isLoading,
       login,
+      register,
+      changePassword,
       logout,
     }),
-    [user, isLoading, login, logout]
+    [user, isLoading, login, register, changePassword, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
