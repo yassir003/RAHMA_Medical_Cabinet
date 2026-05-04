@@ -181,3 +181,57 @@ export async function deletePatient(id: number): Promise<void> {
     method: "DELETE",
   });
 }
+
+// ----- Secretaire endpoints ------------------------------------------------
+
+export interface Secretaire {
+  id: number;
+  nom: string;
+  prenom: string;
+  telephone: string;
+  email: string;
+  assignedDoctor?: string;
+}
+
+export interface SecretaireRequestDto {
+  nom: string;
+  prenom: string;
+  telephone: string;
+  email: string;
+  password?: string;
+}
+
+export async function getSecretaires(
+  page: number = 0,
+  size: number = 10,
+  search: string = ""
+): Promise<PaginatedResponse<Secretaire>> {
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+  });
+  if (search) {
+    queryParams.append("search", search);
+  }
+  return request<PaginatedResponse<Secretaire>>(`/secretaires?${queryParams.toString()}`);
+}
+
+export async function createSecretaire(data: SecretaireRequestDto): Promise<Secretaire> {
+  return request<Secretaire>("/secretaires", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateSecretaire(id: number, data: SecretaireRequestDto): Promise<Secretaire> {
+  return request<Secretaire>(`/secretaires/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteSecretaire(id: number): Promise<void> {
+  return request<void>(`/secretaires/${id}`, {
+    method: "DELETE",
+  });
+}

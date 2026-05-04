@@ -1,65 +1,87 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, PlusCircle, Users, Activity, Mail, Phone, Edit, Trash2, Building } from 'lucide-react';
+import { Search, PlusCircle, Users, Activity, Mail, Phone, Edit, Trash2, Building, Eye, X } from 'lucide-react';
+import { getSecretaires, deleteSecretaire, updateSecretaire, Secretaire } from '@/lib/api';
 
 export default function SecretaryListPage() {
   const router = useRouter();
-  const [secretaries, setSecretaries] = useState<any[]>([]);
+  const [secretaries, setSecretaries] = useState<Secretaire[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Edit Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  
+  // View Modal State
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewSec, setViewSec] = useState<Secretaire | null>(null);
   const [nom, setNom] = useState('');
   const [prenom, setPrenom] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [assignedDoctor, setAssignedDoctor] = useState('Tous les médecins');
+  const [telephone, setTelephone] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('custom_secretaries') || '[]');
-    setSecretaries(stored);
-  }, []);
-
-  const handleDelete = (id: number) => {
-    if(confirm('Voulez-vous vraiment supprimer ce secrétaire ?')) {
-      const updated = secretaries.filter(sec => sec.id !== id);
-      setSecretaries(updated);
-      localStorage.setItem('custom_secretaries', JSON.stringify(updated));
+  const fetchSecretaries = async () => {
+    try {
+      setIsLoading(true);
+      const res = await getSecretaires(0, 100);
+      setSecretaries(res.content);
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const openEdit = (sec: any) => {
+  useEffect(() => {
+    fetchSecretaries();
+  }, []);
+
+  const handleDelete = async (id: number) => {
+    if(confirm('Voulez-vous vraiment supprimer ce secrétaire ?')) {
+      try {
+        await deleteSecretaire(id);
+        fetchSecretaries();
+      } catch (err: any) {
+        alert(err.message || "Erreur lors de la suppression");
+      }
+    }
+  };
+
+  const openEdit = (sec: Secretaire) => {
     setEditId(sec.id);
     setNom(sec.nom || '');
     setPrenom(sec.prenom || '');
     setEmail(sec.email || '');
-    setPhone(sec.phone || '');
-    setAssignedDoctor(sec.assignedDoctor || 'Tous les médecins');
+    setTelephone(sec.telephone || '');
     setIsModalOpen(true);
   };
 
-  const handleUpdate = () => {
-    if (!nom || !prenom) {
-      alert("Le nom et le prénom sont obligatoires.");
+  const openView = (sec: Secretaire) => {
+    setViewSec(sec);
+    setIsViewModalOpen(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!nom || !prenom || !email) {
+      alert("Le nom, prénom et email sont obligatoires.");
       return;
     }
+    if (editId === null) return;
 
-    const updatedSec = {
-      id: editId,
-      nom,
-      prenom,
-      email,
-      phone,
-      assignedDoctor,
-      updatedAt: new Date().toISOString()
-    };
-
-    const updatedList = secretaries.map(sec => sec.id === editId ? { ...sec, ...updatedSec } : sec);
-    setSecretaries(updatedList);
-    localStorage.setItem('custom_secretaries', JSON.stringify(updatedList));
-    
-    setIsModalOpen(false);
+    try {
+      setIsUpdating(true);
+      await updateSecretaire(editId, {
+        nom, prenom, email, telephone, password: "dummy_password" // password is not updated in backend service
+      });
+      setIsModalOpen(false);
+      fetchSecretaries();
+    } catch (err: any) {
+      alert(err.message || "Erreur lors de la mise à jour");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -85,7 +107,9 @@ export default function SecretaryListPage() {
            </div>
         </div>
 
-        {secretaries.length === 0 ? (
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>Chargement...</div>
+        ) : secretaries.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
             <Users size={48} color="#cbd5e1" style={{ marginBottom: '16px' }} />
             <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#0f172a', marginBottom: '8px' }}>Aucun secrétaire</h3>
@@ -115,15 +139,18 @@ export default function SecretaryListPage() {
                          <Mail size={16} /> {sec.email || 'N/A'}
                      </div>
                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '13px' }}>
-                         <Phone size={16} /> {sec.phone || 'N/A'}
+                         <Phone size={16} /> {sec.telephone || 'N/A'}
                      </div>
                  </div>
 
                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                   <button onClick={() => openEdit(sec)} style={{ background: 'white', border: '1px solid #e2e8f0', padding: '8px', borderRadius: '8px', cursor: 'pointer', color: '#3b82f6', transition: 'all 0.2s' }}>
+                   <button onClick={() => openView(sec)} style={{ background: 'white', border: '1px solid #e2e8f0', padding: '8px', borderRadius: '8px', cursor: 'pointer', color: '#10b981', transition: 'all 0.2s' }} title="Voir informations">
+                     <Eye size={18} />
+                   </button>
+                   <button onClick={() => openEdit(sec)} style={{ background: 'white', border: '1px solid #e2e8f0', padding: '8px', borderRadius: '8px', cursor: 'pointer', color: '#3b82f6', transition: 'all 0.2s' }} title="Modifier">
                      <Edit size={18} />
                    </button>
-                   <button onClick={() => handleDelete(sec.id)} style={{ background: 'white', border: '1px solid #fee2e2', padding: '8px', borderRadius: '8px', cursor: 'pointer', color: '#ef4444', transition: 'all 0.2s' }}>
+                   <button onClick={() => handleDelete(sec.id)} style={{ background: 'white', border: '1px solid #fee2e2', padding: '8px', borderRadius: '8px', cursor: 'pointer', color: '#ef4444', transition: 'all 0.2s' }} title="Supprimer">
                      <Trash2 size={18} />
                    </button>
                  </div>
@@ -145,16 +172,63 @@ export default function SecretaryListPage() {
                 <input type="text" placeholder="Prénom" value={prenom} onChange={(e) => setPrenom(e.target.value)} style={{ flex: 1, padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px' }} />
               </div>
               <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px' }} />
-              <input type="text" placeholder="Téléphone" value={phone} onChange={(e) => setPhone(e.target.value)} style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px' }} />
-              <select value={assignedDoctor} onChange={(e) => setAssignedDoctor(e.target.value)} style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', background: 'white', color: '#64748b', fontSize: '14px' }}>
-                <option>Tous les médecins</option>
-                <option>Dr. Shantanu</option>
-                <option>Dr. Donald</option>
-              </select>
+              <input type="text" placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px' }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' }}>
               <button onClick={() => setIsModalOpen(false)} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#f1f5f9', color: '#475569', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}>Annuler</button>
-              <button onClick={handleUpdate} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}>Enregistrer</button>
+              <button onClick={handleUpdate} disabled={isUpdating} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: '14px', opacity: isUpdating ? 0.7 : 1 }}>
+                {isUpdating ? 'Enregistrement...' : 'Enregistrer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Modal */}
+      {isViewModalOpen && viewSec && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '32px', width: '100%', maxWidth: '500px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a' }}>Informations du Secrétaire</h3>
+              <button onClick={() => setIsViewModalOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '18px' }}>
+                    {viewSec.nom ? viewSec.nom.charAt(0).toUpperCase() : 'S'}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>{viewSec.prenom} {viewSec.nom}</div>
+                    <div style={{ fontSize: '13px', color: '#64748b' }}>ID: {viewSec.id}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '4px' }}>Email</div>
+                  <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Mail size={14} color="#3b82f6" />
+                    {viewSec.email || 'Non spécifié'}
+                  </div>
+                </div>
+                
+                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '4px' }}>Téléphone</div>
+                  <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Phone size={14} color="#10b981" />
+                    {viewSec.telephone || 'Non spécifié'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px' }}>
+              <button onClick={() => setIsViewModalOpen(false)} style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}>Fermer</button>
             </div>
           </div>
         </div>

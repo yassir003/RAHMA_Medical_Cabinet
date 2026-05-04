@@ -125,8 +125,14 @@ public class PatientService {
 
     @Transactional
     public void delete(Long id) {
-        findOrThrow(id);
+        Patient patient = findOrThrow(id);
+        User user = patient.getUser();
+
         patientRepository.deleteById(id);
+
+        if (user != null) {
+            userRepository.delete(user);
+        }
     }
 
     private Patient findOrThrow(Long id) {
