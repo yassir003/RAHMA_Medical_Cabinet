@@ -37,7 +37,7 @@ public class AuthController {
     }
 
     @PostMapping("/change-password")
-    @PreAuthorize("hasRole('PATIENT')")
+    // @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(request);
         return ResponseEntity.ok(ApiResponse.success(null, "Mot de passe modifié avec succès", 200));
