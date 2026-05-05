@@ -487,3 +487,146 @@ export async function updateSecretaire(id: number, data: SecretaireRequestDto): 
 export async function deleteSecretaire(id: number): Promise<void> {
   return request<void>(`/secretaires/${id}`, { method: "DELETE" });
 }
+
+// ---------------------------------------------------------------------------
+// Rendez-vous — missing CRUD
+// ---------------------------------------------------------------------------
+
+export async function getRendezVousAll(
+  page = 0,
+  size = 100,
+  direction: "asc" | "desc" = "asc"
+): Promise<PaginatedResponse<RendezVous>> {
+  const q = new URLSearchParams({ page: String(page), size: String(size), sortBy: "dateHeure", direction });
+  return request<PaginatedResponse<RendezVous>>(`/rendez-vous?${q}`);
+}
+
+export async function updateRendezVousFull(id: number, data: RendezVousRequestDto): Promise<RendezVous> {
+  return request<RendezVous>(`/rendez-vous/${id}`, { method: "PUT", body: JSON.stringify(data) });
+}
+
+export async function deleteRendezVous(id: number): Promise<void> {
+  return request<void>(`/rendez-vous/${id}`, { method: "DELETE" });
+}
+
+// ---------------------------------------------------------------------------
+// Mutuelle endpoints
+// ---------------------------------------------------------------------------
+
+export type TypeMutuelle = "CNSS" | "CNOPS" | "ASSURANCE_PRIVEE" | "AUCUNE";
+
+export interface Mutuelle {
+  id: number;
+  type: TypeMutuelle;
+  numeroAffiliation?: string;
+  organismeNom?: string;
+  dateDebut?: string;
+  dateFin?: string;
+  tauxRemboursement?: number;
+  patientId: number;
+  patientNom: string;
+  patientPrenom: string;
+}
+
+export interface MutuelleRequestDto {
+  type: TypeMutuelle;
+  numeroAffiliation?: string;
+  organismeNom?: string;
+  dateDebut?: string;
+  dateFin?: string;
+  tauxRemboursement?: number;
+  patientId: number;
+}
+
+export async function getMutuelles(page = 0, size = 20): Promise<PaginatedResponse<Mutuelle>> {
+  const q = new URLSearchParams({ page: String(page), size: String(size) });
+  return request<PaginatedResponse<Mutuelle>>(`/mutuelles?${q}`);
+}
+
+export async function getMutuelleById(id: number): Promise<Mutuelle> {
+  return request<Mutuelle>(`/mutuelles/${id}`);
+}
+
+export async function getMutuelleByPatient(patientId: number): Promise<Mutuelle> {
+  return request<Mutuelle>(`/mutuelles/patient/${patientId}`);
+}
+
+export async function createMutuelle(data: MutuelleRequestDto): Promise<Mutuelle> {
+  return request<Mutuelle>("/mutuelles", { method: "POST", body: JSON.stringify(data) });
+}
+
+export async function updateMutuelle(id: number, data: MutuelleRequestDto): Promise<Mutuelle> {
+  return request<Mutuelle>(`/mutuelles/${id}`, { method: "PUT", body: JSON.stringify(data) });
+}
+
+export async function deleteMutuelle(id: number): Promise<void> {
+  return request<void>(`/mutuelles/${id}`, { method: "DELETE" });
+}
+
+// ---------------------------------------------------------------------------
+// Dossier de remboursement endpoints
+// ---------------------------------------------------------------------------
+
+export type StatutDossier = "EN_ATTENTE" | "ENVOYE" | "ACCEPTE" | "REJETE" | "REMBOURSE";
+
+export interface DossierRemboursement {
+  id: number;
+  montantTotal?: number;
+  montantRembourse?: number;
+  dateCreation: string;
+  dateEnvoi?: string;
+  statut: StatutDossier;
+  patientId: number;
+  patientNom: string;
+  patientPrenom: string;
+  mutuelleId: number;
+  mutuelleOrganisme?: string;
+  consultationId: number;
+  documentJustificatif?: string;
+}
+
+export interface DossierRemboursementRequestDto {
+  patientId: number;
+  mutuelleId: number;
+  consultationId: number;
+  documentJustificatif?: string;
+}
+
+export async function getDossiers(
+  page = 0,
+  size = 20,
+  statut?: StatutDossier
+): Promise<PaginatedResponse<DossierRemboursement>> {
+  const q = new URLSearchParams({ page: String(page), size: String(size) });
+  if (statut) q.append("statut", statut);
+  return request<PaginatedResponse<DossierRemboursement>>(`/dossiers?${q}`);
+}
+
+export async function getDossierById(id: number): Promise<DossierRemboursement> {
+  return request<DossierRemboursement>(`/dossiers/${id}`);
+}
+
+export async function createDossier(data: DossierRemboursementRequestDto): Promise<DossierRemboursement> {
+  return request<DossierRemboursement>("/dossiers", { method: "POST", body: JSON.stringify(data) });
+}
+
+export async function updateDossierStatut(id: number, statut: StatutDossier): Promise<DossierRemboursement> {
+  return request<DossierRemboursement>(`/dossiers/${id}/statut?statut=${statut}`, { method: "PATCH" });
+}
+
+export async function getDossiersByPatient(
+  patientId: number,
+  page = 0,
+  size = 20
+): Promise<PaginatedResponse<DossierRemboursement>> {
+  const q = new URLSearchParams({ page: String(page), size: String(size) });
+  return request<PaginatedResponse<DossierRemboursement>>(`/dossiers/patient/${patientId}?${q}`);
+}
+
+// ---------------------------------------------------------------------------
+// AI Chat assistant
+// ---------------------------------------------------------------------------
+
+export async function chatAi(message: string): Promise<string> {
+  return request<string>("/chat", { method: "POST", body: JSON.stringify({ message }) });
+}
