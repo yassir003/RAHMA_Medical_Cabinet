@@ -240,6 +240,28 @@ export async function deletePatient(id: number): Promise<void> {
   return request<void>(`/patients/${id}`, { method: "DELETE" });
 }
 
+export async function getPatientById(id: number): Promise<Patient> {
+  return request<Patient>(`/patients/${id}`);
+}
+
+export async function getPatientConsultations(
+  patientId: number,
+  page = 0,
+  size = 20
+): Promise<PaginatedResponse<Consultation>> {
+  const q = new URLSearchParams({ page: String(page), size: String(size) });
+  return request<PaginatedResponse<Consultation>>(`/patients/${patientId}/consultations?${q}`);
+}
+
+export async function getPatientRendezVous(
+  patientId: number,
+  page = 0,
+  size = 20
+): Promise<PaginatedResponse<RendezVous>> {
+  const q = new URLSearchParams({ page: String(page), size: String(size) });
+  return request<PaginatedResponse<RendezVous>>(`/patients/${patientId}/rendez-vous?${q}`);
+}
+
 // ---------------------------------------------------------------------------
 // Medecin endpoints
 // ---------------------------------------------------------------------------
@@ -283,6 +305,89 @@ export async function updateMedecin(id: number, data: Partial<MedecinRequestDto>
 
 export async function deleteMedecin(id: number): Promise<void> {
   return request<void>(`/medecins/${id}`, { method: "DELETE" });
+}
+
+export async function getMedecinById(id: number): Promise<Medecin> {
+  return request<Medecin>(`/medecins/${id}`);
+}
+
+/** Returns the Médecin profile for the currently authenticated MEDECIN user. */
+export async function getMedecinMe(): Promise<Medecin> {
+  return request<Medecin>(`/medecins/me`);
+}
+
+// ---------------------------------------------------------------------------
+// Consultation endpoints
+// ---------------------------------------------------------------------------
+
+export interface Consultation {
+  id: number;
+  dateVisite: string;        // ISO datetime string
+  motif?: string;
+  diagnostic?: string;
+  notes?: string;
+  actesRealises?: string;
+  montantTotal?: number;
+  patientId: number;
+  patientNom: string;
+  patientPrenom: string;
+  medecinId: number;
+  medecinNom: string;
+  medecinPrenom: string;
+  rendezVousId?: number;
+}
+
+export interface ConsultationRequestDto {
+  dateVisite: string;        // ISO datetime: "2026-05-01T10:30:00"
+  motif?: string;
+  diagnostic?: string;
+  notes?: string;
+  actesRealises?: string;
+  montantTotal?: number;
+  patientId: number;
+  medecinId: number;
+  rendezVousId?: number;
+}
+
+export async function getConsultations(
+  page = 0,
+  size = 20
+): Promise<PaginatedResponse<Consultation>> {
+  const q = new URLSearchParams({ page: String(page), size: String(size) });
+  return request<PaginatedResponse<Consultation>>(`/consultations?${q}`);
+}
+
+export async function getConsultationById(id: number): Promise<Consultation> {
+  return request<Consultation>(`/consultations/${id}`);
+}
+
+export async function createConsultation(data: ConsultationRequestDto): Promise<Consultation> {
+  return request<Consultation>("/consultations", { method: "POST", body: JSON.stringify(data) });
+}
+
+export async function updateConsultation(
+  id: number,
+  data: ConsultationRequestDto
+): Promise<Consultation> {
+  return request<Consultation>(`/consultations/${id}`, { method: "PUT", body: JSON.stringify(data) });
+}
+
+export async function getConsultationsByMedecin(
+  medecinId: number,
+  page = 0,
+  size = 20
+): Promise<PaginatedResponse<Consultation>> {
+  const q = new URLSearchParams({ page: String(page), size: String(size) });
+  return request<PaginatedResponse<Consultation>>(`/consultations/medecin/${medecinId}?${q}`);
+}
+
+export async function getConsultationsByPatient(
+  patientId: number,
+  page = 0,
+  size = 20
+): Promise<PaginatedResponse<Consultation>> {
+  const q = new URLSearchParams({ page: String(page), size: String(size) });
+  return request<PaginatedResponse<Consultation>>(`/consultations/patient/${patientId}?${q}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -330,6 +435,14 @@ export async function updateRendezVousStatut(
   statut: string
 ): Promise<RendezVous> {
   return request<RendezVous>(`/rendez-vous/${id}/statut?statut=${statut}`, { method: "PATCH" });
+}
+
+export async function updateRendezVous(id: number, data: RendezVousRequestDto): Promise<RendezVous> {
+  return request<RendezVous>(`/rendez-vous/${id}`, { method: "PUT", body: JSON.stringify(data) });
+}
+
+export async function getRendezVousById(id: number): Promise<RendezVous> {
+  return request<RendezVous>(`/rendez-vous/${id}`);
 }
 
 // ---------------------------------------------------------------------------

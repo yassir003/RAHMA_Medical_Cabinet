@@ -74,6 +74,15 @@ public class MedecinService {
         medecinRepository.deleteById(id);
     }
 
+    public MedecinResponse getMe(String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé: " + email));
+        return medecinMapper.toResponse(
+            medecinRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Profil médecin introuvable pour: " + email))
+        );
+    }
+
     private Medecin findOrThrow(Long id) {
         return medecinRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Médecin non trouvé avec l'id: " + id));

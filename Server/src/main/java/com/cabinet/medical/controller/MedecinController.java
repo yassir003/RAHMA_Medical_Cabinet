@@ -12,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -34,7 +35,14 @@ public class MedecinController {
             medecinService.getAll(search, PageRequest.of(page, size, sort)), "Médecins récupérés", 200));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('MEDECIN')")
+    public ResponseEntity<ApiResponse<MedecinResponse>> getMe(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success(
+            medecinService.getMe(authentication.getName()), "Profil récupéré", 200));
+    }
+
+    @GetMapping("/{id:[0-9]+}")
     @PreAuthorize("hasAnyRole('ADMIN','SECRETAIRE','MEDECIN')")
     public ResponseEntity<ApiResponse<MedecinResponse>> getById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(medecinService.getById(id), "Médecin trouvé", 200));

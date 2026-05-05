@@ -20,6 +20,20 @@ import {
 } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Decode the payload of a JWT without verifying the signature. */
+function decodeJwtPayload(token: string): Record<string, unknown> {
+  try {
+    const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(b64));
+  } catch {
+    return {};
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -31,6 +45,8 @@ export interface AuthUser {
   token: string;
   passwordChanged: boolean;
   pages?: PageItem[];
+  /** User entity ID extracted from the JWT `userId` claim. */
+  userId?: number;
 }
 
 interface AuthContextValue {
@@ -109,12 +125,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (email: string, password: string) => {
       const res: AuthResponse = await apiLogin(email, password);
 
+      const payload = decodeJwtPayload(res.token);
       const authUser: AuthUser = {
         email: res.email,
         role: res.role,
         token: res.token,
         passwordChanged: res.passwordChanged,
         pages: res.pages,
+        userId: typeof payload.userId === "number" ? payload.userId : undefined,
       };
 
       persistUser(authUser);
@@ -133,12 +151,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (data: RegisterRequestDto) => {
       const res: AuthResponse = await apiRegister(data);
 
+      const payload = decodeJwtPayload(res.token);
       const authUser: AuthUser = {
         email: res.email,
         role: res.role,
         token: res.token,
         passwordChanged: res.passwordChanged,
         pages: res.pages,
+        userId: typeof payload.userId === "number" ? payload.userId : undefined,
       };
 
       persistUser(authUser);
