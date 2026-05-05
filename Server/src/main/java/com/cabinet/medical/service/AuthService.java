@@ -75,14 +75,14 @@ public class AuthService {
                     new PageItem("Secretary", "/dashboard/secretary"),
                     new PageItem("Secretary list", "/dashboard/secretary/list"),
                     new PageItem("Create Secretary", "/dashboard/secretary/create"),
-                    new PageItem("Log", "/dashboard/settings")
+                    new PageItem("Log", "/dashboard/logs")
                 ));
                 break;
             case "MEDECIN":
                 pages.addAll(Arrays.asList(
                     new PageItem("Workspace", "/dashboard/doctors"),
                     new PageItem("Medical Report", "/dashboard/reports"),
-                    new PageItem("Patient", "/dashboard/patients"),
+                    new PageItem("Patient", "/dashboard/doctors/patients"),
                     new PageItem("Message", "/dashboard/messages"),
                     new PageItem("Setting", "/dashboard/settings")
                 ));
