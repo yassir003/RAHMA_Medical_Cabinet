@@ -6,12 +6,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
     Page<RendezVous> findByMedecinIdAndDateHeureBetween(
         Long medecinId, LocalDateTime debut, LocalDateTime fin, Pageable pageable);
     boolean existsByMedecinIdAndDateHeureBetweenAndStatutNot(
         Long medecinId, LocalDateTime debut, LocalDateTime fin, StatutRdv statut);
+    List<RendezVous> findByMedecinIdAndDateHeureBetweenAndStatutNot(
+        Long medecinId, LocalDateTime debut, LocalDateTime fin, StatutRdv statut);
     Page<RendezVous> findByStatut(StatutRdv statut, Pageable pageable);
     Page<RendezVous> findByPatientId(Long patientId, Pageable pageable);
+    Page<RendezVous> findByPatient_User_Email(String email, Pageable pageable);
 }

@@ -23,7 +23,7 @@ public class MedecinController {
     private final MedecinService medecinService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','SECRETAIRE')")
+    @PreAuthorize("hasAnyRole('ADMIN','SECRETAIRE','PATIENT')")
     public ResponseEntity<ApiResponse<Page<MedecinResponse>>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,

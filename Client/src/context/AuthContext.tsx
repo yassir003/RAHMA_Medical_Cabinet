@@ -74,7 +74,7 @@ export function defaultRouteForRole(role: Role): string {
     case "ADMIN":      return "/dashboard";
     case "MEDECIN":    return "/dashboard/doctors";
     case "SECRETAIRE": return "/dashboard/secretary";
-    case "PATIENT":    return "/dashboard/appointments";
+    case "PATIENT":    return "/dashboard/patient";
     default:           return "/dashboard";
   }
 }

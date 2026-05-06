@@ -1,13 +1,15 @@
 "use client";
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/Logo';
 import { useAuth, type Role } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { 
-  LayoutDashboard, CalendarRange, FileText, Users, 
-  Stethoscope, MessageSquare, Settings, Search, Bell, LogOut, UserPlus
+import { getUnreadCount } from '@/lib/api';
+import {
+  LayoutDashboard, CalendarRange, FileText, Users,
+  Stethoscope, MessageSquare, Settings, Search, Bell, LogOut, UserPlus,
+  Home, Activity
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -24,10 +26,12 @@ function getIconForPage(name: string) {
     case 'Workspace':
       return LayoutDashboard;
     case 'Appointment':
+    case 'Rendez-vous':
       return CalendarRange;
     case 'Medical Report':
     case 'My Reports':
     case 'Mutuals':
+    case 'Suivi Médical':
       return FileText;
     case 'Patient':
     case 'Secretary':
@@ -44,6 +48,10 @@ function getIconForPage(name: string) {
     case 'Log':
     case 'Setting':
       return Settings;
+    case 'Accueil':
+      return Home;
+    case 'Notifications':
+      return Bell;
     default:
       return LayoutDashboard;
   }
@@ -70,11 +78,20 @@ function roleBadgeLabel(role: Role): string {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // user is guaranteed non-null inside ProtectedRoute, but TS needs a guard
   const role: Role = user?.role ?? 'PATIENT';
   const email = user?.email ?? '';
-  
+
+  useEffect(() => {
+    if (role !== 'PATIENT') return;
+    const load = () => getUnreadCount().then(setUnreadCount).catch(() => {});
+    load();
+    pollRef.current = setInterval(load, 30_000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [role]);
+
   // Map backend pages to menu items with icons
   const menuItems = (user?.pages || []).map(page => ({
     name: page.name,
@@ -154,9 +171,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                </div>
 
                {/* Notifications */}
-               <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+               <Link
+                 href={role === 'PATIENT' ? '/dashboard/patient/notifications' : '#'}
+                 style={{ position: 'relative', width: '48px', height: '48px', borderRadius: '12px', backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.01)', textDecoration: 'none' }}
+               >
                  <Bell size={20} color="#64748b" />
-               </div>
+                 {role === 'PATIENT' && unreadCount > 0 && (
+                   <span style={{ position: 'absolute', top: '8px', right: '8px', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#ef4444', color: 'white', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                     {unreadCount > 9 ? '9+' : unreadCount}
+                   </span>
+                 )}
+               </Link>
 
                {/* Profile — shows real email & role */}
                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '6px', borderRadius: '12px' }}>

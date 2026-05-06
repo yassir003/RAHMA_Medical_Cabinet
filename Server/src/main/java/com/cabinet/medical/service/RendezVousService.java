@@ -26,6 +26,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class RendezVousService {
@@ -37,6 +45,7 @@ public class RendezVousService {
     private final NotificationProducer notificationProducer;
     private final AuditEventProducer auditEventProducer;
     private final DashboardProducer dashboardProducer;
+    private final NotificationService notificationService;
 
     @CircuitBreaker(name = "rdvService", fallbackMethod = "rdvFallback")
     @Retry(name = "rdvService")
@@ -97,6 +106,7 @@ public class RendezVousService {
             .build();
         RendezVous saved = rendezVousRepository.save(rdv);
         notificationProducer.envoyerNotificationRdv(saved);
+        notificationService.notifierRdvPlanifie(saved);
         auditEventProducer.publierEvenementAudit("CREATE", "RendezVous", saved.getId());
         dashboardProducer.notifierMiseAJourDashboard("NEW_RDV");
         return rendezVousMapper.toResponse(saved);
@@ -117,8 +127,11 @@ public class RendezVousService {
         rdv.setStatut(statut);
         RendezVous saved = rendezVousRepository.save(rdv);
         auditEventProducer.publierEvenementAudit("UPDATE_STATUT", "RendezVous", id);
-        if (statut == StatutRdv.ANNULE) {
+        if (statut == StatutRdv.CONFIRME) {
+            notificationService.notifierRdvConfirme(saved);
+        } else if (statut == StatutRdv.ANNULE) {
             notificationProducer.envoyerAlerteAnnulation(saved);
+            notificationService.notifierRdvAnnule(saved);
         }
         return rendezVousMapper.toResponse(saved);
     }
@@ -131,6 +144,49 @@ public class RendezVousService {
 
     public Page<RendezVousResponse> getByPatient(Long patientId, Pageable pageable) {
         return rendezVousRepository.findByPatientId(patientId, pageable).map(rendezVousMapper::toResponse);
+    }
+
+    public Page<RendezVousResponse> getMyRdvs(String email, Pageable pageable) {
+        return rendezVousRepository.findByPatient_User_Email(email, pageable)
+            .map(rendezVousMapper::toResponse);
+    }
+
+    @Transactional
+    public RendezVousResponse annulerMien(Long id, String email) {
+        RendezVous rdv = findOrThrow(id);
+        Patient mine = patientRepository.findByUser_Email(email)
+            .orElseThrow(() -> new ResourceNotFoundException("Fiche patient introuvable"));
+        if (!rdv.getPatient().getId().equals(mine.getId())) {
+            throw new AccessDeniedException("Ce rendez-vous ne vous appartient pas");
+        }
+        if (rdv.getStatut() == StatutRdv.ANNULE) {
+            throw new IllegalStateException("Ce rendez-vous est déjà annulé");
+        }
+        rdv.setStatut(StatutRdv.ANNULE);
+        RendezVous saved = rendezVousRepository.save(rdv);
+        notificationService.notifierRdvAnnule(saved);
+        auditEventProducer.publierEvenementAudit("ANNULER_MIEN", "RendezVous", id);
+        return rendezVousMapper.toResponse(saved);
+    }
+
+    public List<String> getDisponibilites(Long medecinId, LocalDate date) {
+        LocalDateTime debut = date.atTime(9, 0);
+        LocalDateTime fin   = date.atTime(17, 30);
+        List<RendezVous> occupes = rendezVousRepository
+            .findByMedecinIdAndDateHeureBetweenAndStatutNot(medecinId, debut, fin, StatutRdv.ANNULE);
+        Set<LocalDateTime> heuresOccupees = occupes.stream()
+            .map(RendezVous::getDateHeure)
+            .collect(Collectors.toSet());
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("HH:mm");
+        List<String> disponibles = new ArrayList<>();
+        LocalDateTime slot = debut;
+        while (!slot.isAfter(fin)) {
+            if (!heuresOccupees.contains(slot)) {
+                disponibles.add(slot.format(fmt));
+            }
+            slot = slot.plusMinutes(30);
+        }
+        return disponibles;
     }
 
     private RendezVous findOrThrow(Long id) {

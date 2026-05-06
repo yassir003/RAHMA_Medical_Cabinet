@@ -16,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,6 +27,40 @@ public class PatientController {
     private final PatientService patientService;
     private final ConsultationService consultationService;
     private final RendezVousService rendezVousService;
+
+    // ── Patient "me" endpoints ────────────────────────────────────────────────
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<ApiResponse<PatientResponse>> getMe(Authentication auth) {
+        return ResponseEntity.ok(ApiResponse.success(
+            patientService.getMe(auth.getName()), "Profil récupéré", 200));
+    }
+
+    @GetMapping("/me/rendez-vous")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<ApiResponse<Page<RendezVousResponse>>> getMyRendezVous(
+            Authentication auth,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size) {
+        PageRequest pr = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dateHeure"));
+        return ResponseEntity.ok(ApiResponse.success(
+            rendezVousService.getMyRdvs(auth.getName(), pr), "Rendez-vous récupérés", 200));
+    }
+
+    @GetMapping("/me/consultations")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<ApiResponse<Page<ConsultationResponse>>> getMyConsultations(
+            Authentication auth,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size) {
+        PatientResponse me = patientService.getMe(auth.getName());
+        return ResponseEntity.ok(ApiResponse.success(
+            consultationService.getByPatient(me.getId(), PageRequest.of(page, size)),
+            "Consultations récupérées", 200));
+    }
+
+    // ── Standard CRUD ─────────────────────────────────────────────────────────
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','SECRETAIRE','MEDECIN')")

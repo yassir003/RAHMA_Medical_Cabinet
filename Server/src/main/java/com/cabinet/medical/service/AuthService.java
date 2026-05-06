@@ -98,10 +98,11 @@ public class AuthService {
                 ));
                 break;
             case "PATIENT":
-                pages.addAll(Arrays.asList(
-                    new PageItem("My Reports", "/dashboard/reports"),
-                    new PageItem("Message", "/dashboard/messages"),
-                    new PageItem("Setting", "/dashboard/settings")
+                pages = new ArrayList<>(Arrays.asList(
+                    new PageItem("Accueil", "/dashboard/patient"),
+                    new PageItem("Rendez-vous", "/dashboard/patient/appointments"),
+                    new PageItem("Suivi Médical", "/dashboard/patient/medical"),
+                    new PageItem("Notifications", "/dashboard/patient/notifications")
                 ));
                 break;
             default:

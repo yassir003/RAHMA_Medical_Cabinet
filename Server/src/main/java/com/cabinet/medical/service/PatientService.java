@@ -135,6 +135,14 @@ public class PatientService {
         }
     }
 
+    /** Returns the Patient profile linked to the authenticated user's email. */
+    public PatientResponse getMe(String email) {
+        return patientMapper.toResponse(
+            patientRepository.findByUser_Email(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Fiche patient introuvable pour ce compte"))
+        );
+    }
+
     private Patient findOrThrow(Long id) {
         return patientRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Patient non trouvé avec l'id: " + id));

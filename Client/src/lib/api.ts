@@ -413,7 +413,7 @@ export interface RendezVousRequestDto {
   patientId: number;
   medecinId: number;
   dateHeure: string;
-  motif: string;
+  motif?: string;
   notes?: string;
   type?: string;
 }
@@ -651,4 +651,82 @@ export async function getDossiersByPatient(
 
 export async function chatAi(message: string): Promise<string> {
   return request<string>("/chat", { method: "POST", body: JSON.stringify({ message }) });
+}
+
+// ---------------------------------------------------------------------------
+// Patient-role specific API
+// ---------------------------------------------------------------------------
+
+export interface Notification {
+  id: number;
+  titre: string;
+  message: string;
+  type: "RDV_PLANIFIE" | "RDV_CONFIRME" | "RDV_ANNULE" | "ALERTE_MEDICALE" | "RAPPEL" | "SYSTEME";
+  lu: boolean;
+  dateCreation: string;
+  patient?: { id: number };
+}
+
+/** GET /patients/me — returns the authenticated patient's profile */
+export async function getMyProfile(): Promise<Patient> {
+  return request<Patient>("/patients/me");
+}
+
+/** GET /patients/me/rendez-vous — paginated list of own RDVs */
+export async function getMyRendezVous(
+  page = 0,
+  size = 20
+): Promise<PaginatedResponse<RendezVous>> {
+  return request<PaginatedResponse<RendezVous>>(
+    `/patients/me/rendez-vous?page=${page}&size=${size}&sort=dateHeure,desc`
+  );
+}
+
+/** GET /patients/me/consultations — paginated list of own consultations */
+export async function getMyConsultations(
+  page = 0,
+  size = 20
+): Promise<PaginatedResponse<Consultation>> {
+  return request<PaginatedResponse<Consultation>>(
+    `/patients/me/consultations?page=${page}&size=${size}`
+  );
+}
+
+/** PATCH /rendez-vous/{id}/annuler — patient cancels their own RDV */
+export async function cancelMyRendezVous(id: number): Promise<RendezVous> {
+  return request<RendezVous>(`/rendez-vous/${id}/annuler`, { method: "PATCH" });
+}
+
+/** GET /rendez-vous/disponibilites/{medecinId}?date=YYYY-MM-DD */
+export async function getDisponibilites(
+  medecinId: number,
+  date: string
+): Promise<string[]> {
+  return request<string[]>(`/rendez-vous/disponibilites/${medecinId}?date=${date}`);
+}
+
+/** GET /notifications/me — paginated notifications for authenticated patient */
+export async function getMyNotifications(
+  page = 0,
+  size = 20
+): Promise<PaginatedResponse<Notification>> {
+  return request<PaginatedResponse<Notification>>(
+    `/notifications/me?page=${page}&size=${size}`
+  );
+}
+
+/** GET /notifications/me/count-non-lus */
+export async function getUnreadCount(): Promise<number> {
+  const res = await request<{ count: number }>("/notifications/me/count-non-lus");
+  return res.count;
+}
+
+/** PATCH /notifications/{id}/lu */
+export async function markNotificationRead(id: number): Promise<Notification> {
+  return request<Notification>(`/notifications/${id}/lu`, { method: "PATCH" });
+}
+
+/** PATCH /notifications/lu-tout */
+export async function markAllNotificationsRead(): Promise<void> {
+  await request<void>("/notifications/lu-tout", { method: "PATCH" });
 }

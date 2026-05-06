@@ -10,10 +10,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/rendez-vous")
@@ -66,5 +71,22 @@ public class RendezVousController {
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         rendezVousService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Rendez-vous supprimé", 200));
+    }
+
+    @PatchMapping("/{id}/annuler")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<ApiResponse<RendezVousResponse>> annulerMien(
+            @PathVariable Long id, Authentication auth) {
+        return ResponseEntity.ok(ApiResponse.success(
+            rendezVousService.annulerMien(id, auth.getName()), "Rendez-vous annulé", 200));
+    }
+
+    @GetMapping("/disponibilites/{medecinId}")
+    @PreAuthorize("hasAnyRole('PATIENT','SECRETAIRE','MEDECIN','ADMIN')")
+    public ResponseEntity<ApiResponse<List<String>>> getDisponibilites(
+            @PathVariable Long medecinId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(ApiResponse.success(
+            rendezVousService.getDisponibilites(medecinId, date), "Disponibilités récupérées", 200));
     }
 }
