@@ -30,6 +30,14 @@ public class DashboardService {
         mutuelleRepository.countByType().forEach(row ->
             patientsParMutuelle.put(row[0].toString(), (Long) row[1]));
 
+        Map<String, Map<String, Long>> rdvParMois = new HashMap<>();
+        rendezVousRepository.countRendezVousParMoisEtStatut().forEach(row -> {
+            String month = row[0].toString();
+            String statut = row[1].toString();
+            Long count = (Long) row[2];
+            rdvParMois.computeIfAbsent(month, k -> new HashMap<>()).put(statut, count);
+        });
+
         return DashboardStatsResponse.builder()
             .totalPatients(patientRepository.count())
             .totalMedecins(medecinRepository.count())
@@ -42,6 +50,7 @@ public class DashboardService {
             .dossierEnAttente(dossierRepository.findByStatut(
                 StatutDossier.EN_ATTENTE, org.springframework.data.domain.Pageable.unpaged()).getTotalElements())
             .patientsParMutuelle(patientsParMutuelle)
+            .rendezVousParMois(rdvParMois)
             .build();
     }
 }

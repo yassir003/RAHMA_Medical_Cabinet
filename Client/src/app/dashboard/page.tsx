@@ -1,21 +1,54 @@
 "use client";
-import React from 'react';
-import { MoreHorizontal, Calendar as CalendarIcon, MousePointerClick, Users, RefreshCcw, Stethoscope, PlusCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MoreHorizontal, Calendar as CalendarIcon, MousePointerClick, Users, RefreshCcw, Stethoscope, PlusCircle, Loader2 } from 'lucide-react';
+import { getDashboardStats, getPatients, getRendezVousAll, DashboardStats, Patient, RendezVous } from '@/lib/api';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 export default function DashboardPage() {
-  
-  const patients = [
-    { name: 'Annette Black', date: 'Dec 18, 2021', diag: 'Skin rash and eczema', status: 'Incoming', statusColor: '#f59e0b', bg: '#fef3c7' },
-    { name: 'Savannah Nguyen', date: 'Dec 18, 2021', diag: 'Nail problems', status: 'Confirmed', statusColor: '#3b82f6', bg: '#dbeafe' },
-    { name: 'Ronald Richards', date: 'Dec 18, 2021', diag: 'Contraceptives', status: 'Cancelled', statusColor: '#94a3b8', bg: '#f1f5f9' },
-    { name: 'Bessie Cooper', date: 'Dec 18, 2021', diag: 'Quit smoking', status: 'Confirmed', statusColor: '#3b82f6', bg: '#dbeafe' },
-  ];
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [upcoming, setUpcoming] = useState<RendezVous[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const upcoming = [
-    { title: 'Nurse Visit 20', doctor: 'Dr. Carol D. Pollack-rundle', color: '#3b82f6' },
-    { title: 'Annual Visit 15', doctor: 'Dr. Donald F. Watren', color: '#f59e0b' },
-    { title: 'Established Patient 30', doctor: 'Dr. Gina F. Durham', color: '#eab308' }
-  ];
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setIsLoading(true);
+        const [statsData, patientsData, rdvData] = await Promise.all([
+          getDashboardStats(),
+          getPatients(0, 5),
+          getRendezVousAll(0, 4, 'asc')
+        ]);
+        setStats(statsData);
+        setPatients(patientsData.content);
+        setUpcoming(rdvData.content);
+      } catch (err) {
+        console.error("Failed to load dashboard data", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#94a3b8' }}>
+        <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
+      </div>
+    );
+  }
+
+  const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+  const chartData = months.map((month, index) => {
+    const monthKey = String(index + 1);
+    const monthData = stats?.rendezVousParMois?.[monthKey] || {};
+    return {
+      name: month,
+      planifies: monthData['PLANIFIE'] || 0,
+      termines: (monthData['TERMINE'] || 0) + (monthData['HONORE'] || 0),
+    };
+  });
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '30px' }}>
@@ -26,10 +59,10 @@ export default function DashboardPage() {
         {/* Metric Cards Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
           {[
-            { label: 'Total Doctor', value: '3', icon: MousePointerClick, color: '#3b82f6' },
-            { label: 'Total Staff', value: '10', icon: Users, color: '#d946ef' },
-            { label: 'Total Patient', value: '2.414', icon: RefreshCcw, color: '#22c55e' },
-            { label: 'New Appointment', value: '150', icon: CalendarIcon, color: '#f59e0b' }
+            { label: 'Total Patients', value: stats?.totalPatients || 0, icon: Users, color: '#22c55e' },
+            { label: 'Total Doctors', value: stats?.totalMedecins || 0, icon: Stethoscope, color: '#3b82f6' },
+            { label: 'RDV Today', value: stats?.rdvAujourdhui || 0, icon: CalendarIcon, color: '#f59e0b' },
+            { label: 'Consultations', value: stats?.totalConsultations || 0, icon: RefreshCcw, color: '#d946ef' }
           ].map((metric, i) => (
              <div key={i} style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
                <div style={{ color: '#64748b', fontSize: '13px', fontWeight: 500, marginBottom: '12px' }}>{metric.label}</div>
@@ -41,44 +74,35 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Patient Overview Chart Area (Mocked visually) */}
+        {/* Rendez-vous Overview Chart Area (Mocked visually) */}
         <div style={{ background: 'white', borderRadius: '16px', padding: '30px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-               <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>Patient Overview</h3>
+               <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>Aperçu des Rendez-vous</h3>
                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12px', fontWeight: 600, color: '#64748b' }}>
-                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width:'8px', height:'8px', borderRadius:'50%', backgroundColor:'#3b82f6' }}></div> Male</span>
-                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width:'8px', height:'8px', borderRadius:'50%', backgroundColor:'#f472b6' }}></div> Female</span>
+                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width:'8px', height:'8px', borderRadius:'50%', backgroundColor:'#3b82f6' }}></div> Planifiés</span>
+                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width:'8px', height:'8px', borderRadius:'50%', backgroundColor:'#10b981' }}></div> Terminés</span>
                </div>
             </div>
             <select style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px', outline: 'none', color: '#64748b', fontWeight: 500 }}>
-              <option>Monthly</option>
+              <option>Mensuel</option>
             </select>
           </div>
           
-          <div style={{ height: '300px', width: '100%', position: 'relative', borderLeft: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'flex-end', paddingBottom: '30px' }}>
-            {/* Y axis labels */}
-            <div style={{ position: 'absolute', left: '-25px', top: 0, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', fontSize: '11px', color: '#cbd5e1' }}>
-              <span>80</span><span>60</span><span>40</span><span>20</span><span>0</span>
-            </div>
-            {/* X axis labels */}
-            <div style={{ position: 'absolute', bottom: '-20px', left: 0, width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#cbd5e1', paddingLeft: '20px' }}>
-              <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
-            </div>
-            {/* Mock Chart lines SVG */}
-             <svg width="100%" height="250px" viewBox="0 0 800 250" preserveAspectRatio="none" style={{ position: 'absolute', bottom: '30px', left: 0 }}>
-                {/* Female Line (Pink) */}
-                <path d="M0,200 C50,150 100,50 150,100 C200,150 250,150 300,100 C350,50 400,200 450,150 C500,100 550,150 600,100 C650,50 700,200 750,150 C800,180 800,180 800,180" fill="none" stroke="#f472b6" strokeWidth="3" opacity="0.4" />
-                {/* Male Line (Blue) */}
-                <path d="M0,220 C50,220 100,100 150,150 C200,200 300,150 350,130 C400,180 450,100 500,70 C550,100 650,20 700,80 C750,120 780,20 800,20" fill="none" stroke="#3b82f6" strokeWidth="4" />
-                {/* Overlay Tooltip on Male Line (Aug/Sep) */}
-                <circle cx="500" cy="70" r="5" fill="#3b82f6" stroke="white" strokeWidth="3" />
-             </svg>
-             {/* Mock floating tooltip */}
-             <div style={{ position: 'absolute', top: '15px', left: '55%', background: 'white', padding: '12px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', fontSize: '12px', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#3b82f6' }}></div> Male</span>
-                <span style={{ color: '#0f172a' }}>50 Patients</span>
-             </div>
+          <div style={{ height: '300px', width: '100%', marginTop: '10px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#cbd5e1' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#cbd5e1' }} />
+                <RechartsTooltip 
+                  cursor={{ stroke: '#f1f5f9', strokeWidth: 2 }} 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', fontWeight: 600, fontSize: '12px', color: '#0f172a' }} 
+                />
+                <Line type="monotone" dataKey="planifies" name="Planifiés" stroke="#3b82f6" strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 3 }} />
+                <Line type="monotone" dataKey="termines" name="Terminés" stroke="#10b981" strokeWidth={3} strokeOpacity={0.7} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
@@ -99,18 +123,21 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {patients.map((p, i) => (
-                <tr key={i} style={{ borderTop: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '20px 0', display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#e2e8f0' }}></div>
-                    {p.name}
-                  </td>
-                  <td style={{ padding: '20px 0', fontSize: '13px', color: '#94a3b8' }}>{p.date}</td>
-                  <td style={{ padding: '20px 0', fontSize: '13px', color: '#64748b' }}>{p.diag}</td>
-                  <td style={{ padding: '20px 0', fontSize: '12px', fontWeight: 700, color: p.statusColor }}>{p.status}</td>
-                  <td style={{ padding: '20px 0', textAlign: 'right' }}><MoreHorizontal size={18} color="#cbd5e1" cursor="pointer" /></td>
-                </tr>
-              ))}
+              {patients.map((p) => {
+                const name = `${p.prenom} ${p.nom}`;
+                return (
+                  <tr key={p.id} style={{ borderTop: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '20px 0', display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#e2e8f0', backgroundImage: `url('https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random')`, backgroundSize: 'cover' }}></div>
+                      {name}
+                    </td>
+                    <td style={{ padding: '20px 0', fontSize: '13px', color: '#94a3b8' }}>{p.dateNaissance ? new Date(p.dateNaissance).toLocaleDateString() : 'N/A'}</td>
+                    <td style={{ padding: '20px 0', fontSize: '13px', color: '#64748b' }}>{p.antecedents || 'Aucun antécédent'}</td>
+                    <td style={{ padding: '20px 0', fontSize: '12px', fontWeight: 700, color: '#10b981' }}>Enregistré</td>
+                    <td style={{ padding: '20px 0', textAlign: 'right' }}><MoreHorizontal size={18} color="#cbd5e1" cursor="pointer" /></td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -122,7 +149,9 @@ export default function DashboardPage() {
         {/* Calendar Widget */}
         <div style={{ background: 'white', borderRadius: '16px', padding: '30px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>July, 2022</h3>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+              {new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+            </h3>
             <div style={{ display: 'flex', gap: '12px', color: '#94a3b8' }}>
               <span style={{ cursor: 'pointer' }}>&lt;</span>
               <span style={{ cursor: 'pointer' }}>&gt;</span>
@@ -148,31 +177,32 @@ export default function DashboardPage() {
         <div style={{ background: 'white', borderRadius: '16px', padding: '30px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)', flex: 1 }}>
            <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginBottom: '30px' }}>Upcoming Appointment</h3>
            <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-             {upcoming.map((apt, i) => (
-               <div key={i} style={{ display: 'flex', gap: '16px' }}>
-                 {/* Timeline node */}
-                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '12px' }}>
-                   <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: apt.color, marginTop: '4px' }}></div>
-                   {i !== upcoming.length - 1 && <div style={{ width: '2px', flex: 1, backgroundColor: '#f1f5f9', marginTop: '4px', marginBottom: '-30px' }}></div>}
-                 </div>
-                 {/* Content */}
-                 <div style={{ flex: 1 }}>
-                   <div style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '12px' }}>Today, 08:30 am - 10:30 am</div>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                     <div>
-                       <div style={{ color: '#0f172a', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>{apt.title}</div>
-                       <div style={{ color: '#94a3b8', fontSize: '12px' }}>{apt.doctor}</div>
+             {upcoming.map((apt, i) => {
+               const colors = ['#3b82f6', '#f59e0b', '#eab308', '#22c55e', '#d946ef'];
+               const color = colors[apt.id % colors.length];
+               const dateStr = new Date(apt.dateHeure).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+               return (
+                 <div key={apt.id} style={{ display: 'flex', gap: '16px' }}>
+                   {/* Timeline node */}
+                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '12px' }}>
+                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: color, marginTop: '4px' }}></div>
+                     {i !== upcoming.length - 1 && <div style={{ width: '2px', flex: 1, backgroundColor: '#f1f5f9', marginTop: '4px', marginBottom: '-30px' }}></div>}
+                   </div>
+                   {/* Content */}
+                   <div style={{ flex: 1 }}>
+                     <div style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '12px' }}>{dateStr}</div>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                       <div>
+                         <div style={{ color: '#0f172a', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>{apt.motif || 'Consultation'} - {apt.patientPrenom} {apt.patientNom}</div>
+                         <div style={{ color: '#94a3b8', fontSize: '12px' }}>Dr. {apt.medecinNom}</div>
+                       </div>
+                       <span style={{ color: '#0f172a', fontWeight: 'bold' }}>&gt;</span>
                      </div>
-                     <span style={{ color: '#0f172a', fontWeight: 'bold' }}>&gt;</span>
                    </div>
                  </div>
-               </div>
-             ))}
-             {/* Mock next timeline marker */}
-             <div style={{ display: 'flex', gap: '16px', marginTop: '10px' }}>
-                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#22c55e', marginTop: '4px' }}></div>
-                <div style={{ color: '#94a3b8', fontSize: '12px', flex: 1 }}>Today, 08:30 am - 10:30 am</div>
-             </div>
+               );
+             })}
+             {upcoming.length === 0 && <div style={{ color: '#94a3b8', fontSize: '13px' }}>No upcoming appointments</div>}
            </div>
         </div>
 

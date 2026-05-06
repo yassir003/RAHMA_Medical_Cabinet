@@ -133,7 +133,8 @@ export default function AuditLogsPage() {
     const token = getToken();
     if (!token) { setConnStatus("disconnected"); return; }
 
-    const es = new EventSource(`/api/v1/audit/stream?token=${encodeURIComponent(token)}`);
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+    const es = new EventSource(`${baseUrl}/api/v1/audit/stream?token=${encodeURIComponent(token)}`);
     esRef.current = es;
 
     es.addEventListener("connected", () => {
