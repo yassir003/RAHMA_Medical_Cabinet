@@ -1,5 +1,6 @@
 package com.cabinet.medical.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -34,13 +35,16 @@ public class Consultation {
 
     @ManyToOne
     @JoinColumn(name = "patient_id")
+    @JsonIgnore
     private Patient patient;
 
     @ManyToOne
     @JoinColumn(name = "medecin_id")
+    @JsonIgnore
     private Medecin medecin;
 
     @OneToOne
     @JoinColumn(name = "rendez_vous_id")
+    @JsonIgnore
     private RendezVous rendezVous;
 }

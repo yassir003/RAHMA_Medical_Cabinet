@@ -50,18 +50,16 @@ export default function PatientHomePage() {
 
   const load = useCallback(async () => {
     try {
-      const [p, r, n, u] = await Promise.all([
+      const [pRes, rRes, nRes, uRes] = await Promise.allSettled([
         getMyProfile(),
         getMyRendezVous(0, 5),
         getMyNotifications(0, 5),
         getUnreadCount(),
       ]);
-      setProfile(p);
-      setRdvs(r.content ?? []);
-      setNotifs(n.content ?? []);
-      setUnread(u);
-    } catch {
-      // ignore
+      if (pRes.status === "fulfilled") setProfile(pRes.value);
+      if (rRes.status === "fulfilled") setRdvs(rRes.value.content ?? []);
+      if (nRes.status === "fulfilled") setNotifs(nRes.value.content ?? []);
+      if (uRes.status === "fulfilled") setUnread(uRes.value);
     } finally {
       setLoading(false);
     }
@@ -87,7 +85,7 @@ export default function PatientHomePage() {
         <div>
           <p style={{ margin: 0, opacity: 0.8, fontSize: 14 }}>Bienvenue,</p>
           <h2 style={{ margin: "4px 0 8px", fontSize: 28, fontWeight: 700 }}>
-            {profile ? `${profile.prenom} ${profile.nom}` : user?.email}
+            {profile ? `${profile.prenom} ${profile.nom}` : (user?.email?.split("@")[0] ?? "Patient")}
           </h2>
           {profile?.groupeSanguin && (
             <span style={{ background: "rgba(255,255,255,0.2)", padding: "4px 12px", borderRadius: 20, fontSize: 13, fontWeight: 600 }}>

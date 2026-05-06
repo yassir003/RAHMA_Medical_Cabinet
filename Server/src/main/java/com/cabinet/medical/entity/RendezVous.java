@@ -1,6 +1,7 @@
 package com.cabinet.medical.entity;
 
 import com.cabinet.medical.enums.StatutRdv;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -34,6 +35,7 @@ public class RendezVous {
     private Medecin medecin;
 
     @OneToOne(mappedBy = "rendezVous")
+    @JsonIgnore
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private Consultation consultation;

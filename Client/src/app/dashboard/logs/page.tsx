@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   ShieldAlert, Search, X, Wifi, WifiOff, Loader2,
   LogIn, Plus, Edit2, Trash2, RefreshCw, Radio,
 } from "lucide-react";
 import { getAuditLogs, AuditLog } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -102,6 +104,8 @@ const CATEGORY_TABS: { key: Category; label: string }[] = [
 ];
 
 export default function AuditLogsPage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [logs, setLogs] = useState<LiveLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -115,14 +119,23 @@ export default function AuditLogsPage() {
   const retryDelay = useRef(2000);
   const tableRef = useRef<HTMLDivElement>(null);
 
+  // ── Role guard ──────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (user && user.role !== "ADMIN") {
+      router.replace("/dashboard");
+    }
+  }, [user, router]);
+
   // ── Initial load ────────────────────────────────────────────────────────────
 
   useEffect(() => {
+    if (!user || user.role !== "ADMIN") return;
     getAuditLogs(0, 200)
       .then((r) => setLogs(r.content.map((l) => ({ ...l, _flash: false }))))
       .catch(() => { /* show empty */ })
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   // ── SSE connection manager ──────────────────────────────────────────────────
 
@@ -170,12 +183,13 @@ export default function AuditLogsPage() {
   }, []);
 
   useEffect(() => {
+    if (!user || user.role !== "ADMIN") return;
     connect();
     return () => {
       esRef.current?.close();
       if (retryRef.current) clearTimeout(retryRef.current);
     };
-  }, [connect]);
+  }, [connect, user]);
 
   // ── Filtered view ───────────────────────────────────────────────────────────
 
@@ -233,6 +247,7 @@ export default function AuditLogsPage() {
             setLoading(true);
             getAuditLogs(0, 200)
               .then((r) => setLogs(r.content))
+              .catch(() => { /* ignore */ })
               .finally(() => setLoading(false));
           }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px",
             borderRadius: 8, border: "1px solid #e2e8f0", background: "white",

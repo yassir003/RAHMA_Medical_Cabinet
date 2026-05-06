@@ -1,35 +1,46 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { MoreHorizontal, Calendar as CalendarIcon, MousePointerClick, Users, RefreshCcw, Stethoscope, PlusCircle, Loader2 } from 'lucide-react';
 import { getDashboardStats, getPatients, getRendezVousAll, DashboardStats, Patient, RendezVous } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import { defaultRouteForRole } from '@/context/AuthContext';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [upcoming, setUpcoming] = useState<RendezVous[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Redirect roles that don't belong on the admin dashboard
   useEffect(() => {
+    if (user && user.role !== 'ADMIN' && user.role !== 'MEDECIN') {
+      router.replace(defaultRouteForRole(user.role));
+    }
+  }, [user, router]);
+
+  useEffect(() => {
+    if (!user || (user.role !== 'ADMIN' && user.role !== 'MEDECIN')) return;
     async function loadData() {
       try {
         setIsLoading(true);
-        const [statsData, patientsData, rdvData] = await Promise.all([
+        const [statsRes, patientsRes, rdvRes] = await Promise.allSettled([
           getDashboardStats(),
           getPatients(0, 5),
-          getRendezVousAll(0, 4, 'asc')
+          getRendezVousAll(0, 4, 'asc'),
         ]);
-        setStats(statsData);
-        setPatients(patientsData.content);
-        setUpcoming(rdvData.content);
-      } catch (err) {
-        console.error("Failed to load dashboard data", err);
+        if (statsRes.status === 'fulfilled') setStats(statsRes.value);
+        if (patientsRes.status === 'fulfilled') setPatients(patientsRes.value.content);
+        if (rdvRes.status === 'fulfilled') setUpcoming(rdvRes.value.content);
       } finally {
         setIsLoading(false);
       }
     }
     loadData();
-  }, []);
+  }, [user]);
 
   if (isLoading) {
     return (
@@ -89,8 +100,8 @@ export default function DashboardPage() {
             </select>
           </div>
           
-          <div style={{ height: '300px', width: '100%', marginTop: '10px' }}>
-            <ResponsiveContainer width="100%" height="100%">
+          <div style={{ height: '300px', width: '100%', marginTop: '10px', minHeight: 0 }}>
+            <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#cbd5e1' }} dy={10} />
