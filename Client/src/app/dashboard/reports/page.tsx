@@ -216,7 +216,7 @@ export default function MedicalReportsPage() {
               >
                 <option value={0}>Select Mutuelle</option>
                 {mutuelles.map(m => (
-                  <option key={m.id} value={m.id}>{m.organisme} ({m.typeCouverture})</option>
+                  <option key={m.id} value={m.id}>{m.organismeNom ?? m.type} ({m.type})</option>
                 ))}
               </select>
 
