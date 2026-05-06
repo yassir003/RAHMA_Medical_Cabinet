@@ -20,4 +20,5 @@ public class DashboardStatsResponse {
     private long dossierEnAttente;
     private Map<String, Long> consultationsParMedecin;
     private Map<String, Long> patientsParMutuelle;
+    private Map<String, Map<String, Long>> rendezVousParMois;
 }

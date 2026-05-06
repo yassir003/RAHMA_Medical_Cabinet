@@ -36,7 +36,10 @@ public class AuditController {
      */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
-    public SseEmitter stream() {
-        return auditService.subscribe();
+    public ResponseEntity<SseEmitter> stream() {
+        return ResponseEntity.ok()
+                .header("X-Accel-Buffering", "no")
+                .header("Cache-Control", "no-cache")
+                .body(auditService.subscribe());
     }
 }

@@ -168,6 +168,7 @@ export interface DashboardStats {
   rdvPlanifies: number;
   dossierEnAttente: number;
   patientsParMutuelle: Record<string, number>;
+  rendezVousParMois?: Record<string, Record<string, number>>;
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
