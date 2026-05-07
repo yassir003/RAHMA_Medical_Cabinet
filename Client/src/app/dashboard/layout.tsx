@@ -93,11 +93,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [role]);
 
   // Map backend pages to menu items with icons
-  const menuItems = (user?.pages || []).map(page => ({
-    name: page.name,
-    path: page.path,
-    icon: getIconForPage(page.name)
-  }));
+  // MEDECIN has their own workspace — the generic "Dashboard" entry is excluded for them
+  const menuItems = (user?.pages || [])
+    .filter(page => !(role === 'MEDECIN' && page.name === 'Dashboard'))
+    .map(page => ({
+      name: page.name,
+      path: page.path,
+      icon: getIconForPage(page.name)
+    }));
 
   return (
     <ProtectedRoute>

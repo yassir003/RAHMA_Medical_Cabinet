@@ -44,8 +44,9 @@ function clearAuthAndRedirect(path: string) {
 
 async function request<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit & { skipAuthRedirect?: boolean } = {}
 ): Promise<T> {
+  const { skipAuthRedirect, ...fetchOptions } = options as RequestInit & { skipAuthRedirect?: boolean };
   const url = `${BASE_URL}${endpoint}`;
 
   const headers = new Headers(options.headers || {});
@@ -67,7 +68,7 @@ async function request<T>(
     }
   }
 
-  const res = await fetch(url, { ...options, headers });
+  const res = await fetch(url, { ...fetchOptions, headers });
 
   if (!res.ok) {
     let message = "Une erreur est survenue";
@@ -83,7 +84,11 @@ async function request<T>(
     }
 
     if (res.status === 401) {
-      // Stale or invalid token → clear and redirect to login
+      if (skipAuthRedirect) {
+        // Auth endpoint itself (login) — just surface the error, don't redirect
+        throw new ApiError(message || "Identifiants incorrects.", 401, errorCode);
+      }
+      // Stale or invalid token elsewhere → clear and redirect to login
       clearAuthAndRedirect("/login");
       throw new ApiError("Session expirée — veuillez vous reconnecter", 401, errorCode);
     }
@@ -122,7 +127,8 @@ export async function login(email: string, password: string): Promise<AuthRespon
   return request<AuthResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
-  });
+    skipAuthRedirect: true,
+  } as RequestInit & { skipAuthRedirect: boolean });
 }
 
 export interface RegisterRequestDto {

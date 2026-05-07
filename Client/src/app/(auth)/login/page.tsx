@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [errorType, setErrorType] = useState<'notfound' | 'credentials' | 'other' | null>(null);
   const [loading, setLoading] = useState(false);
 
   const { login } = useAuth();
@@ -24,16 +25,31 @@ export default function LoginPage() {
     }
 
     setLoading(true);
+    setErrorType(null);
     try {
       await login(email, password);
       // redirect is handled inside AuthContext.login()
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        if (err.status === 404) {
+          setErrorType('notfound');
+          setError("Aucun compte trouvé pour cet email.");
+        } else if (err.status === 401) {
+          setErrorType('credentials');
+          setError("Mot de passe incorrect. Vérifiez vos identifiants.");
+        } else if (err.status === 429) {
+          setErrorType('other');
+          setError("Trop de tentatives. Réessayez dans 1 minute.");
+        } else {
+          setErrorType('other');
+          setError(err.message);
+        }
       } else if (err instanceof TypeError) {
-        setError('Cannot reach the server — is it running?');
+        setErrorType('other');
+        setError('Impossible de joindre le serveur — est-il démarré ?');
       } else {
-        setError('An unexpected error occurred');
+        setErrorType('other');
+        setError('Une erreur inattendue est survenue.');
       }
     } finally {
       setLoading(false);
@@ -49,16 +65,24 @@ export default function LoginPage() {
       
       {error && (
         <div style={{
-          padding: '12px 16px',
+          padding: '14px 16px',
           marginBottom: '24px',
           borderRadius: '8px',
-          backgroundColor: '#fef2f2',
-          border: '1px solid #fecaca',
-          color: '#dc2626',
+          backgroundColor: errorType === 'notfound' ? '#fffbeb' : '#fef2f2',
+          border: `1px solid ${errorType === 'notfound' ? '#fde68a' : '#fecaca'}`,
+          color: errorType === 'notfound' ? '#92400e' : '#dc2626',
           fontSize: '14px',
           fontWeight: 500,
         }}>
-          {error}
+          <div>{error}</div>
+          {errorType === 'notfound' && (
+            <div style={{ marginTop: '8px', fontSize: '13px' }}>
+              Vous n&apos;avez pas encore de compte ?{' '}
+              <Link href="/register" style={{ color: '#d97706', fontWeight: 700, textDecoration: 'underline' }}>
+                Créer un compte
+              </Link>
+            </div>
+          )}
         </div>
       )}
 

@@ -15,15 +15,15 @@ export default function DashboardPage() {
   const [upcoming, setUpcoming] = useState<RendezVous[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Redirect roles that don't belong on the admin dashboard
+  // Only ADMIN belongs on this dashboard — all other roles go to their own workspace
   useEffect(() => {
-    if (user && user.role !== 'ADMIN' && user.role !== 'MEDECIN') {
+    if (user && user.role !== 'ADMIN') {
       router.replace(defaultRouteForRole(user.role));
     }
   }, [user, router]);
 
   useEffect(() => {
-    if (!user || (user.role !== 'ADMIN' && user.role !== 'MEDECIN')) return;
+    if (!user || user.role !== 'ADMIN') return;
     async function loadData() {
       try {
         setIsLoading(true);
