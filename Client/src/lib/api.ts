@@ -326,15 +326,18 @@ export interface Consultation {
   dateVisite: string;        // ISO datetime string
   motif?: string;
   diagnostic?: string;
+  diagnosticPatient?: string;
   notes?: string;
   actesRealises?: string;
   montantTotal?: number;
   patientId: number;
   patientNom: string;
   patientPrenom: string;
+  patientCin?: string;
   medecinId: number;
   medecinNom: string;
   medecinPrenom: string;
+  medecinSpecialite?: string;
   rendezVousId?: number;
 }
 
@@ -342,6 +345,7 @@ export interface ConsultationRequestDto {
   dateVisite: string;        // ISO datetime: "2026-05-01T10:30:00"
   motif?: string;
   diagnostic?: string;
+  diagnosticPatient?: string;
   notes?: string;
   actesRealises?: string;
   montantTotal?: number;
@@ -389,6 +393,20 @@ export async function getConsultationsByPatient(
 ): Promise<PaginatedResponse<Consultation>> {
   const q = new URLSearchParams({ page: String(page), size: String(size) });
   return request<PaginatedResponse<Consultation>>(`/consultations/patient/${patientId}?${q}`);
+}
+
+/** GET /consultations/medecin/me — consultations for the authenticated médecin */
+export async function getConsultationsByMedecinMe(
+  page = 0,
+  size = 10
+): Promise<PaginatedResponse<Consultation>> {
+  const q = new URLSearchParams({ page: String(page), size: String(size) });
+  return request<PaginatedResponse<Consultation>>(`/consultations/medecin/me?${q}`);
+}
+
+/** GET /consultations/{id} — role-aware: backend filters fields based on JWT role */
+export async function getConsultationReport(id: number): Promise<Consultation> {
+  return request<Consultation>(`/consultations/${id}`);
 }
 
 // ---------------------------------------------------------------------------
