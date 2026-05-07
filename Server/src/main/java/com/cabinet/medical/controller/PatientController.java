@@ -71,6 +71,24 @@ public class PatientController {
 
     // ── Standard CRUD ─────────────────────────────────────────────────────────
 
+    /**
+     * GET /patients/medecin/me — returns only patients linked to the authenticated doctor
+     * (via consultation or appointment). Must be declared BEFORE /{id} to avoid
+     * Spring treating "medecin" as a Long path variable.
+     */
+    @GetMapping("/medecin/me")
+    @PreAuthorize("hasRole('MEDECIN')")
+    public ResponseEntity<ApiResponse<Page<PatientResponse>>> getMyPatients(
+            Authentication auth,
+            @RequestParam(defaultValue = "0")   int page,
+            @RequestParam(defaultValue = "100") int size,
+            @RequestParam(required = false)     String search) {
+        Sort sort = Sort.by("nom").ascending();
+        return ResponseEntity.ok(ApiResponse.success(
+            patientService.getMyPatients(auth.getName(), search, PageRequest.of(page, size, sort)),
+            "Mes patients récupérés", 200));
+    }
+
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','SECRETAIRE','MEDECIN')")
     public ResponseEntity<ApiResponse<Page<PatientResponse>>> getAll(

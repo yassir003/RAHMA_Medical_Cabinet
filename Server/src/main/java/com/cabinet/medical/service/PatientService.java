@@ -9,6 +9,8 @@ import com.cabinet.medical.exception.RegistrationException;
 import com.cabinet.medical.exception.ResourceNotFoundException;
 import com.cabinet.medical.mapper.PatientMapper;
 import com.cabinet.medical.messaging.producer.NotificationProducer;
+import com.cabinet.medical.entity.Medecin;
+import com.cabinet.medical.repository.MedecinRepository;
 import com.cabinet.medical.repository.PatientRepository;
 import com.cabinet.medical.repository.UserRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -30,6 +32,7 @@ public class PatientService {
 
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;
+    private final MedecinRepository medecinRepository;
     private final PatientMapper patientMapper;
     private final PasswordEncoder passwordEncoder;
     private final NotificationProducer notificationProducer;
@@ -157,6 +160,20 @@ public class PatientService {
         patient.setAllergies(request.getAllergies());
         patient.setAntecedents(request.getAntecedents());
         return patientMapper.toResponse(patientRepository.save(patient));
+    }
+
+    /**
+     * Returns only patients who have had a consultation or an appointment with
+     * the authenticated médecin. Supports optional name/CIN search.
+     */
+    public Page<PatientResponse> getMyPatients(String email, String search, Pageable pageable) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé: " + email));
+        Medecin medecin = medecinRepository.findByUserId(user.getId())
+            .orElseThrow(() -> new ResourceNotFoundException("Profil médecin introuvable pour: " + email));
+        return patientRepository
+            .findPatientsByMedecinId(medecin.getId(), search, pageable)
+            .map(patientMapper::toResponse);
     }
 
     private Patient findOrThrow(Long id) {
