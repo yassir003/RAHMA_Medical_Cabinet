@@ -235,6 +235,17 @@ export async function getPatients(
   return request<PaginatedResponse<Patient>>(`/patients?${q}`);
 }
 
+/** GET /patients/medecin/me — patients linked to the authenticated doctor only */
+export async function getMyPatientsAsMedecin(
+  page = 0,
+  size = 100,
+  search = ""
+): Promise<PaginatedResponse<Patient>> {
+  const q = new URLSearchParams({ page: String(page), size: String(size) });
+  if (search) q.append("search", search);
+  return request<PaginatedResponse<Patient>>(`/patients/medecin/me?${q}`);
+}
+
 export async function createPatient(data: PatientRequestDto): Promise<Patient> {
   return request<Patient>("/patients", { method: "POST", body: JSON.stringify(data) });
 }
