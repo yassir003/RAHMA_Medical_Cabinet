@@ -9,6 +9,7 @@ import {
   getMyNotifications,
   getUnreadCount,
   updateMyProfile,
+  createRendezVous,
   type Patient,
   type RendezVous,
   type Notification,
@@ -99,7 +100,30 @@ export default function PatientHomePage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const processPending = async () => {
+      const pendingStr = localStorage.getItem("pending_rendezvous");
+      if (pendingStr) {
+        try {
+          const pending = JSON.parse(pendingStr);
+          localStorage.removeItem("pending_rendezvous");
+          const profileRes = await getMyProfile();
+          await createRendezVous({
+            patientId: profileRes.id,
+            medecinId: pending.doctorId,
+            dateHeure: pending.dateTime,
+            motif: "Consultation"
+          });
+          alert("Votre rendez-vous a été réservé avec succès !");
+        } catch (err) {
+          console.error("Failed to book pending rendezvous", err);
+          alert("Erreur lors de la réservation du rendez-vous.");
+        }
+      }
+      load();
+    };
+    processPending();
+  }, [load]);
 
   const upcoming = rdvs.filter(r => r.statut !== "ANNULE" && r.statut !== "TERMINE" && new Date(r.dateHeure) >= new Date());
 

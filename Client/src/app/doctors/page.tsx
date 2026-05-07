@@ -1,31 +1,98 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/Logo';
-import { Search, MapPin, ThumbsUp, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Search, MapPin, ThumbsUp, ChevronLeft, ChevronRight, CheckCircle2, Loader2 } from 'lucide-react';
+import { getMedecins, createRendezVous, getMyProfile, type Medecin } from '@/lib/api';
+import { useAuth, defaultRouteForRole } from '@/context/AuthContext';
+
+function parseDateTime(dateObj: Date, timeStr: string) {
+  const [time, period] = timeStr.split(' ');
+  let [hours, minutes] = time.split(':').map(Number);
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  
+  const d = new Date(dateObj);
+  d.setHours(hours, minutes, 0, 0);
+  
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
+}
 
 export default function DoctorsPage() {
+  const { user } = useAuth();
   const [expandedId, setExpandedId] = useState<number | null>(null); // ← initially no schedule open
   const router = useRouter();
 
-  // Modified: accepts doctorId and toggles schedule after login check
-  const handleBookVisit = (doctorId: number) => {
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
-    if (!isLoggedIn) {
-      router.push('/login');
-    } else {
-      // Toggle: close if already open, otherwise open this doctor's schedule
-      setExpandedId(prev => (prev === doctorId ? null : doctorId));
-    }
+  const [doctors, setDoctors] = useState<Medecin[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+
+  const [selectedDateIndex, setSelectedDateIndex] = useState(0);
+  const today = new Date();
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  const day3 = new Date(today); day3.setDate(today.getDate() + 2);
+  const dates = [today, tomorrow, day3];
+  const dateLabels = ['Today', 'Tomorrow', day3.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })];
+
+  useEffect(() => {
+    setLoading(true);
+    getMedecins(page, 10, searchQuery).then(res => {
+      setDoctors(res.content);
+      setTotalPages(res.totalPages);
+      setTotalElements(res.totalElements);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setLoading(false);
+    });
+  }, [page, searchQuery]);
+
+  const handleSearch = () => {
+    setSearchQuery(searchInput);
+    setPage(0);
   };
 
-  const doctors = [
-    { id: 1, name: 'Dr. Shantanu Jambhekar', type: 'Dentist', exp: '16 years experience overall', clinic: 'Smilesense Center For Advanced Dentistry', loc: 'Pune, Mumbai', fee: '500', stories: '93 Patient Stories', percent: '99%' },
-    { id: 2, name: 'Dr. Shantanu Jambhekar', type: 'Dentist', exp: '16 years experience overall', clinic: 'Smilesense Center For Advanced Dentistry', loc: 'Pune, Mumbai', fee: '500', stories: '93 Patient Stories', percent: '99%' },
-    { id: 3, name: 'Dr. Shantanu Jambhekar', type: 'Dentist', exp: '16 years experience overall', clinic: 'Smilesense Center For Advanced Dentistry', loc: 'Pune, Mumbai', fee: '500', stories: '93 Patient Stories', percent: '99%' },
-    { id: 4, name: 'Dr. Shantanu Jambhekar', type: 'Dentist', exp: '16 years experience overall', clinic: 'Smilesense Center For Advanced Dentistry', loc: 'Pune, Mumbai', fee: '500', stories: '93 Patient Stories', percent: '99%' },
-  ];
+  const handleBookVisit = (doctorId: number) => {
+    // Toggle: close if already open, otherwise open this doctor's schedule
+    setExpandedId(prev => (prev === doctorId ? null : doctorId));
+  };
+
+  const handleTimeSlotClick = async (doctorId: number, dateObj: Date, timeStr: string) => {
+    const dateTime = parseDateTime(dateObj, timeStr);
+    const pending = { doctorId, dateTime };
+    
+    const isLoggedIn = localStorage.getItem('rahma_auth_user');
+    if (!isLoggedIn) {
+      localStorage.setItem('pending_rendezvous', JSON.stringify(pending));
+      router.push('/register');
+    } else {
+      try {
+        const profile = await getMyProfile();
+        await createRendezVous({
+          patientId: profile.id,
+          medecinId: doctorId,
+          dateHeure: dateTime,
+          motif: 'Consultation'
+        });
+        alert('Rendez-vous réservé avec succès !');
+        router.push('/dashboard/patient');
+      } catch (err) {
+        console.error(err);
+        alert('Erreur lors de la réservation.');
+      }
+    }
+  };
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#fafbfd' }}>
@@ -46,9 +113,21 @@ export default function DoctorsPage() {
           <Link href="#">Software For Provider</Link>
           <Link href="#">Facilities</Link>
         </nav>
-        <Link href="/login" className="btn-primary" style={{ padding: '10px 24px', borderRadius: '8px' }}>
-          Login / Signup
-        </Link>
+        {user ? (
+          <Link href={defaultRouteForRole(user.role)} style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '18px' }}>
+              {user.email.charAt(0).toUpperCase()}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--secondary)' }}>Mon Espace</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{user.role}</span>
+            </div>
+          </Link>
+        ) : (
+          <Link href="/login" className="btn-primary" style={{ padding: '10px 24px', borderRadius: '8px' }}>
+            Login / Signup
+          </Link>
+        )}
       </header>
 
       {/* Search Header Area */}
@@ -56,9 +135,16 @@ export default function DoctorsPage() {
          <div style={{ maxWidth: '1200px', margin: '0 auto', background: 'white', display: 'flex', borderRadius: '12px', padding: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', alignItems: 'center', flex: 1, padding: '0 16px', gap: '12px' }}>
               <Search size={20} color="var(--text-muted)" />
-              <input type="text" placeholder="Dr. Doctor, Hospital" style={{ border: 'none', width: '100%', outline: 'none', fontSize: '15px' }} />
+              <input 
+                type="text" 
+                placeholder="Dr. Doctor, Specialty" 
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                style={{ border: 'none', width: '100%', outline: 'none', fontSize: '15px' }} 
+              />
             </div>
-            <button className="btn-primary" style={{ padding: '12px 32px', borderRadius: '8px' }}>Search</button>
+            <button onClick={handleSearch} className="btn-primary" style={{ padding: '12px 32px', borderRadius: '8px' }}>Search</button>
          </div>
       </div>
 
@@ -79,42 +165,52 @@ export default function DoctorsPage() {
         {/* Left Column - Doctors List */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '20px', color: 'var(--secondary)', fontWeight: 700, marginBottom: '6px' }}>55 doctors available in Andheri west</h2>
+            <h2 style={{ fontSize: '20px', color: 'var(--secondary)', fontWeight: 700, marginBottom: '6px' }}>{totalElements} doctors available</h2>
             <div style={{ fontSize: '14px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <CheckCircle2 size={16} color="var(--text-muted)" /> Book appointments with minimum wait-time & verified doctor details
             </div>
           </div>
 
-          {doctors.map(doc => (
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
+              <Loader2 size={32} color="var(--primary)" style={{ animation: "spin 1s linear infinite" }} />
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          ) : doctors.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
+              No doctors found matching your criteria.
+            </div>
+          ) : doctors.map(doc => (
             <div key={doc.id} style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
               <div style={{ padding: '24px', display: 'flex', gap: '20px' }}>
                 <div style={{ position: 'relative' }}>
-                  <div style={{ width: '90px', height: '90px', borderRadius: '50%', backgroundColor: '#e0f2fe', backgroundImage: 'url("https://ui-avatars.com/api/?name=Doc+Shan&background=e0f2fe&color=0284c7")', backgroundSize: 'cover' }}></div>
+                  <div style={{ width: '90px', height: '90px', borderRadius: '50%', backgroundColor: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', fontWeight: 'bold', color: 'var(--primary)' }}>
+                    {doc.prenom?.charAt(0)}{doc.nom?.charAt(0)}
+                  </div>
                   <div style={{ position: 'absolute', bottom: 0, right: 0, background: 'white', borderRadius: '50%', padding: '2px' }}>
                     <CheckCircle2 color="var(--primary)" fill="white" size={20} />
                   </div>
                 </div>
 
                 <div style={{ flex: 1 }}>
-                  <h3 style={{ color: 'var(--primary)', fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>{doc.name}</h3>
+                  <h3 style={{ color: 'var(--primary)', fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>Dr. {doc.prenom} {doc.nom}</h3>
                   <div style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '8px' }}>
-                    <span style={{ color: 'var(--secondary)' }}>{doc.type}</span><br/>
-                    {doc.exp}
+                    <span style={{ color: 'var(--secondary)' }}>{doc.specialite}</span><br/>
+                    {doc.email || 'Email not provided'}
                   </div>
                   <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--secondary)', marginBottom: '8px' }}>
-                    {doc.loc}<br/>
-                    <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{doc.clinic} + 1 more</span>
+                    Cabinet RAHMA<br/>
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{doc.telephone || 'Phone not provided'}</span>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px', marginBottom: '12px' }}>
                     <span style={{ color: 'var(--success)', fontWeight: 700 }}>FREE</span>
-                    <span style={{ color: 'var(--text-muted)', textDecoration: 'line-through' }}>₹{doc.fee}</span>
                     <span style={{ color: 'var(--foreground)' }}>Consultation fee at clinic</span>
                   </div>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'var(--success)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 700 }}>
-                      <ThumbsUp size={12} /> {doc.percent}
+                      <ThumbsUp size={12} /> 99%
                     </div>
-                    <span style={{ fontSize: '13px', color: 'var(--secondary)', fontWeight: 600 }}>{doc.stories}</span>
+                    <span style={{ fontSize: '13px', color: 'var(--secondary)', fontWeight: 600 }}>100+ Patient Stories</span>
                   </div>
                 </div>
 
@@ -133,18 +229,22 @@ export default function DoctorsPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
                     <button style={{ border: '1px solid #e2e8f0', background: 'white', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><ChevronLeft size={16}/></button>
                     <div style={{ display: 'flex', gap: '40px' }}>
-                      <div style={{ textAlign: 'center', borderBottom: '2px solid var(--primary)', paddingBottom: '8px', color: 'var(--primary)' }}>
-                        <div style={{ fontWeight: 600, fontSize: '15px' }}>Today</div>
-                        <div style={{ fontSize: '12px', fontWeight: 500 }}>11 Slots Available</div>
-                      </div>
-                      <div style={{ textAlign: 'center', paddingBottom: '8px', color: 'var(--text-muted)' }}>
-                        <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--secondary)' }}>Tomorrow</div>
-                        <div style={{ fontSize: '12px', fontWeight: 500 }}>17 Slots Available</div>
-                      </div>
-                      <div style={{ textAlign: 'center', paddingBottom: '8px', color: 'var(--text-muted)' }}>
-                        <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--secondary)' }}>Fri, 5 May</div>
-                        <div style={{ fontSize: '12px', fontWeight: 500 }}>18 Slots Available</div>
-                      </div>
+                      {dates.map((d, i) => (
+                        <div 
+                          key={i} 
+                          onClick={() => setSelectedDateIndex(i)}
+                          style={{ 
+                            textAlign: 'center', 
+                            borderBottom: selectedDateIndex === i ? '2px solid var(--primary)' : 'none', 
+                            paddingBottom: '8px', 
+                            color: selectedDateIndex === i ? 'var(--primary)' : 'var(--text-muted)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <div style={{ fontWeight: 600, fontSize: '15px', color: selectedDateIndex === i ? 'var(--primary)' : 'var(--secondary)' }}>{dateLabels[i]}</div>
+                          <div style={{ fontSize: '12px', fontWeight: 500 }}>Slots Available</div>
+                        </div>
+                      ))}
                     </div>
                     <button style={{ border: '1px solid #e2e8f0', background: 'white', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><ChevronRight size={16}/></button>
                   </div>
@@ -152,23 +252,25 @@ export default function DoctorsPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--secondary)', width: '80px' }}>Morning</span>
-                      <div style={{ display: 'flex', gap: '12px' }}>
-                        <span style={{ padding: '8px 16px', border: '1px solid var(--primary)', borderRadius: '6px', fontSize: '13px', color: 'var(--primary)', fontWeight: 500, cursor: 'pointer' }}>11:30 AM</span>
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                        {['09:00 AM', '10:00 AM', '11:00 AM', '11:30 AM'].map(time => (
+                          <span key={time} onClick={() => handleTimeSlotClick(doc.id, dates[selectedDateIndex], time)} style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', color: 'var(--primary)', fontWeight: 500, cursor: 'pointer', background: 'white' }}>{time}</span>
+                        ))}
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--secondary)', width: '80px' }}>Afternoon</span>
-                      <div style={{ display: 'flex', gap: '12px' }}>
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         {['12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM'].map(time => (
-                          <span key={time} style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', color: 'var(--primary)', fontWeight: 500, cursor: 'pointer' }}>{time}</span>
+                          <span key={time} onClick={() => handleTimeSlotClick(doc.id, dates[selectedDateIndex], time)} style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', color: 'var(--primary)', fontWeight: 500, cursor: 'pointer', background: 'white' }}>{time}</span>
                         ))}
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--secondary)', width: '80px' }}>Evening</span>
-                      <div style={{ display: 'flex', gap: '12px' }}>
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         {['06:00 PM', '06:30 PM', '07:00 PM'].map(time => (
-                          <span key={time} style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', color: 'var(--primary)', fontWeight: 500, cursor: 'pointer' }}>{time}</span>
+                          <span key={time} onClick={() => handleTimeSlotClick(doc.id, dates[selectedDateIndex], time)} style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', color: 'var(--primary)', fontWeight: 500, cursor: 'pointer', background: 'white' }}>{time}</span>
                         ))}
                       </div>
                     </div>
@@ -179,15 +281,41 @@ export default function DoctorsPage() {
           ))}
 
           {/* Pagination */}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '20px' }}>
-            <span style={{ padding: '8px 12px', background: 'white', borderRadius: '4px', border: '1px solid #e2e8f0', color: 'var(--text-muted)', cursor: 'pointer' }}>&lt;</span>
-            <span style={{ padding: '8px 12px', background: 'var(--primary)', color: 'white', borderRadius: '4px', fontWeight: 600 }}>1</span>
-            <span style={{ padding: '8px 12px', background: 'white', borderRadius: '4px', border: '1px solid #e2e8f0', color: 'var(--secondary)', cursor: 'pointer' }}>2</span>
-            <span style={{ padding: '8px 12px', background: 'white', borderRadius: '4px', border: '1px solid #e2e8f0', color: 'var(--secondary)', cursor: 'pointer' }}>3</span>
-            <span style={{ color: 'var(--text-muted)' }}>...</span>
-            <span style={{ padding: '8px 12px', background: 'white', borderRadius: '4px', border: '1px solid #e2e8f0', color: 'var(--secondary)', cursor: 'pointer' }}>10</span>
-            <span style={{ padding: '8px 12px', background: 'white', borderRadius: '4px', border: '1px solid #e2e8f0', color: 'var(--secondary)', cursor: 'pointer' }}>&gt;</span>
-          </div>
+          {totalPages > 1 && !loading && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '20px' }}>
+              <button 
+                disabled={page === 0} 
+                onClick={() => setPage(p => p - 1)}
+                style={{ padding: '8px 12px', background: 'white', borderRadius: '4px', border: '1px solid #e2e8f0', color: page === 0 ? '#cbd5e1' : 'var(--secondary)', cursor: page === 0 ? 'not-allowed' : 'pointer' }}
+              >
+                &lt;
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => (
+                <span 
+                  key={i} 
+                  onClick={() => setPage(i)}
+                  style={{ 
+                    padding: '8px 12px', 
+                    background: page === i ? 'var(--primary)' : 'white', 
+                    color: page === i ? 'white' : 'var(--secondary)', 
+                    borderRadius: '4px', 
+                    border: page === i ? 'none' : '1px solid #e2e8f0', 
+                    fontWeight: page === i ? 600 : 400,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {i + 1}
+                </span>
+              ))}
+              <button 
+                disabled={page >= totalPages - 1} 
+                onClick={() => setPage(p => p + 1)}
+                style={{ padding: '8px 12px', background: 'white', borderRadius: '4px', border: '1px solid #e2e8f0', color: page >= totalPages - 1 ? '#cbd5e1' : 'var(--secondary)', cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer' }}
+              >
+                &gt;
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Right Column - Ads & Widgets */}

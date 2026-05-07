@@ -6,8 +6,10 @@ import {
   Building2, Pill, Monitor, Heart, Activity, 
   Stethoscope, Shield, FlaskConical, Syringe, CheckCircle2
 } from 'lucide-react';
+import { useAuth, defaultRouteForRole } from '@/context/AuthContext';
 
 export default function LandingPage() {
+  const { user } = useAuth();
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--background)' }}>
       
@@ -27,9 +29,21 @@ export default function LandingPage() {
           <Link href="#">Software For Provider</Link>
           <Link href="#">Facilities</Link>
         </nav>
-        <Link href="/login" className="btn-primary" style={{ padding: '10px 24px', borderRadius: '8px' }}>
-          Login / Signup
-        </Link>
+        {user ? (
+          <Link href={defaultRouteForRole(user.role)} style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '18px' }}>
+              {user.email.charAt(0).toUpperCase()}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--secondary)' }}>Mon Espace</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{user.role}</span>
+            </div>
+          </Link>
+        ) : (
+          <Link href="/login" className="btn-primary" style={{ padding: '10px 24px', borderRadius: '8px' }}>
+            Login / Signup
+          </Link>
+        )}
       </header>
 
       {/* Hero Section */}
