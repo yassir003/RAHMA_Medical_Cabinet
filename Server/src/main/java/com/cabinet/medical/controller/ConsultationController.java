@@ -8,9 +8,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -30,9 +32,11 @@ public class ConsultationController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MEDECIN')")
-    public ResponseEntity<ApiResponse<ConsultationResponse>> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success(consultationService.getById(id), "Consultation trouvée", 200));
+    @PreAuthorize("hasAnyRole('ADMIN','MEDECIN','SECRETAIRE','PATIENT')")
+    public ResponseEntity<ApiResponse<ConsultationResponse>> getById(
+            @PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success(
+            consultationService.getByIdForRole(id, authentication), "Consultation trouvée", 200));
     }
 
     @PostMapping
@@ -50,7 +54,7 @@ public class ConsultationController {
     }
 
     @GetMapping("/patient/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MEDECIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MEDECIN','SECRETAIRE')")
     public ResponseEntity<ApiResponse<Page<ConsultationResponse>>> getByPatient(
             @PathVariable Long id,
             @RequestParam(defaultValue = "0") int page,
@@ -67,5 +71,18 @@ public class ConsultationController {
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(ApiResponse.success(
             consultationService.getByMedecin(id, PageRequest.of(page, size)), "Consultations du médecin", 200));
+    }
+
+    /** GET /consultations/medecin/me — all consultations for the authenticated médecin */
+    @GetMapping("/medecin/me")
+    @PreAuthorize("hasRole('MEDECIN')")
+    public ResponseEntity<ApiResponse<Page<ConsultationResponse>>> getMyConsultations(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        PageRequest pr = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dateVisite"));
+        return ResponseEntity.ok(ApiResponse.success(
+            consultationService.getByMedecinEmail(authentication.getName(), pr),
+            "Mes consultations", 200));
     }
 }

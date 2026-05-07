@@ -12,9 +12,11 @@ import com.cabinet.medical.mapper.RendezVousMapper;
 import com.cabinet.medical.messaging.producer.AuditEventProducer;
 import com.cabinet.medical.messaging.producer.DashboardProducer;
 import com.cabinet.medical.messaging.producer.NotificationProducer;
+import com.cabinet.medical.entity.User;
 import com.cabinet.medical.repository.MedecinRepository;
 import com.cabinet.medical.repository.PatientRepository;
 import com.cabinet.medical.repository.RendezVousRepository;
+import com.cabinet.medical.repository.UserRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +43,7 @@ public class RendezVousService {
     private final RendezVousRepository rendezVousRepository;
     private final PatientRepository patientRepository;
     private final MedecinRepository medecinRepository;
+    private final UserRepository userRepository;
     private final RendezVousMapper rendezVousMapper;
     private final NotificationProducer notificationProducer;
     private final AuditEventProducer auditEventProducer;
@@ -148,6 +151,19 @@ public class RendezVousService {
 
     public Page<RendezVousResponse> getMyRdvs(String email, Pageable pageable) {
         return rendezVousRepository.findByPatient_User_Email(email, pageable)
+            .map(rendezVousMapper::toResponse);
+    }
+
+    /**
+     * Returns all appointments for the authenticated médecin, sorted by dateHeure desc.
+     * Used by GET /rendez-vous/medecin/me — avoids client-side filtering over all RDVs.
+     */
+    public Page<RendezVousResponse> getByMedecinEmail(String email, Pageable pageable) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé: " + email));
+        Medecin medecin = medecinRepository.findByUserId(user.getId())
+            .orElseThrow(() -> new ResourceNotFoundException("Profil médecin introuvable pour: " + email));
+        return rendezVousRepository.findByMedecinId(medecin.getId(), pageable)
             .map(rendezVousMapper::toResponse);
     }
 

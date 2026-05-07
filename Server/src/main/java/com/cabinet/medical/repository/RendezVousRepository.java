@@ -18,6 +18,7 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
     Page<RendezVous> findByStatut(StatutRdv statut, Pageable pageable);
     Page<RendezVous> findByPatientId(Long patientId, Pageable pageable);
     Page<RendezVous> findByPatient_User_Email(String email, Pageable pageable);
+    Page<RendezVous> findByMedecinId(Long medecinId, Pageable pageable);
 
     @org.springframework.data.jpa.repository.Query("SELECT MONTH(r.dateHeure), r.statut, COUNT(r) FROM RendezVous r WHERE YEAR(r.dateHeure) = YEAR(CURRENT_DATE) GROUP BY MONTH(r.dateHeure), r.statut")
     java.util.List<Object[]> countRendezVousParMoisEtStatut();

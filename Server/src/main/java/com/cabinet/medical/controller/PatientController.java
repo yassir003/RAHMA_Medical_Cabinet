@@ -48,6 +48,15 @@ public class PatientController {
             rendezVousService.getMyRdvs(auth.getName(), pr), "Rendez-vous récupérés", 200));
     }
 
+    @PatchMapping("/me")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<ApiResponse<PatientResponse>> updateMe(
+            Authentication auth,
+            @RequestBody PatientRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+            patientService.updateMe(auth.getName(), request), "Profil mis à jour", 200));
+    }
+
     @GetMapping("/me/consultations")
     @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<ApiResponse<Page<ConsultationResponse>>> getMyConsultations(

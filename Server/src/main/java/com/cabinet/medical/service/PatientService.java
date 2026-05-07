@@ -143,6 +143,22 @@ public class PatientService {
         );
     }
 
+    /**
+     * Allows an authenticated PATIENT to update their own non-critical information.
+     * Nom, prénom, CIN and email are intentionally excluded from self-edit.
+     */
+    @Transactional
+    public PatientResponse updateMe(String email, PatientRequest request) {
+        Patient patient = patientRepository.findByUser_Email(email)
+            .orElseThrow(() -> new ResourceNotFoundException("Fiche patient introuvable pour ce compte"));
+        patient.setTelephone(request.getTelephone());
+        patient.setAdresse(request.getAdresse());
+        patient.setGroupeSanguin(request.getGroupeSanguin());
+        patient.setAllergies(request.getAllergies());
+        patient.setAntecedents(request.getAntecedents());
+        return patientMapper.toResponse(patientRepository.save(patient));
+    }
+
     private Patient findOrThrow(Long id) {
         return patientRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Patient non trouvé avec l'id: " + id));

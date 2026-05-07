@@ -26,6 +26,9 @@ public class Consultation {
     private String diagnostic;
 
     @Column(columnDefinition = "TEXT")
+    private String diagnosticPatient;
+
+    @Column(columnDefinition = "TEXT")
     private String notes;
 
     @Column(columnDefinition = "TEXT")

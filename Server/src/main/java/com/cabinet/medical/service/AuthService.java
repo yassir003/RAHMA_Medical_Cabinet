@@ -39,6 +39,11 @@ public class AuthService {
     private final AuditEventProducer auditEventProducer;
 
     public AuthResponse login(LoginRequest request) {
+        // Check user existence first so we can return a clear 404 instead of a generic error
+        if (!userRepository.existsByEmail(request.getEmail())) {
+            throw new ResourceNotFoundException(
+                "Aucun compte trouvé pour cet email. Veuillez créer un compte d'abord.");
+        }
         Authentication auth = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
         UserDetails userDetails = (UserDetails) auth.getPrincipal();
@@ -69,18 +74,15 @@ public class AuthService {
                 pages.addAll(Arrays.asList(
                     new PageItem("Medical Report", "/dashboard/reports"),
                     new PageItem("Patient", "/dashboard/patients"),
-                    new PageItem("Doctor", "/dashboard/doctors"),
                     new PageItem("Doctors list", "/dashboard/doctors/list"),
-                    new PageItem("Create Doctor", "/dashboard/doctors/create"),
-                    new PageItem("Secretary", "/dashboard/secretary"),
                     new PageItem("Secretary list", "/dashboard/secretary/list"),
-                    new PageItem("Create Secretary", "/dashboard/secretary/create"),
                     new PageItem("Log", "/dashboard/logs")
                 ));
                 break;
             case "MEDECIN":
-                pages.addAll(Arrays.asList(
+                pages = new ArrayList<>(Arrays.asList(
                     new PageItem("Workspace", "/dashboard/doctors"),
+                    new PageItem("Appointment", "/dashboard/appointments"),
                     new PageItem("Medical Report", "/dashboard/reports"),
                     new PageItem("Patient", "/dashboard/doctors/patients"),
                     new PageItem("Message", "/dashboard/messages"),

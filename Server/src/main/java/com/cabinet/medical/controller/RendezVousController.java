@@ -39,6 +39,21 @@ public class RendezVousController {
             rendezVousService.getAll(PageRequest.of(page, size, sort)), "Rendez-vous récupérés", 200));
     }
 
+    /** GET /rendez-vous/medecin/me — appointments for the authenticated médecin only */
+    @GetMapping("/medecin/me")
+    @PreAuthorize("hasRole('MEDECIN')")
+    public ResponseEntity<ApiResponse<Page<RendezVousResponse>>> getMyRdvs(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size,
+            @RequestParam(defaultValue = "dateHeure") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction) {
+        Sort sort = direction.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        return ResponseEntity.ok(ApiResponse.success(
+            rendezVousService.getByMedecinEmail(authentication.getName(), PageRequest.of(page, size, sort)),
+            "Mes rendez-vous", 200));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','SECRETAIRE','MEDECIN','PATIENT')")
     public ResponseEntity<ApiResponse<RendezVousResponse>> getById(@PathVariable Long id) {

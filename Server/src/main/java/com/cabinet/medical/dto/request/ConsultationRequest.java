@@ -10,6 +10,7 @@ public class ConsultationRequest {
     @NotNull private LocalDateTime dateVisite;
     private String motif;
     private String diagnostic;
+    private String diagnosticPatient;
     private String notes;
     private String actesRealises;
     private BigDecimal montantTotal;
