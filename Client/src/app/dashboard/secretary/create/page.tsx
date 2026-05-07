@@ -82,17 +82,9 @@ export default function CreateSecretaryPage() {
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '24px' }}>
               Accès Système
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            <div style={{ maxWidth: '400px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>Médecins Assignés</label>
-                <select style={{ padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px', color: '#0f172a', background: 'transparent' }}>
-                  <option>Tous les médecins</option>
-                  <option>Dr. Shantanu</option>
-                  <option>Dr. Donald</option>
-                </select>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>Mot de passe</label>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>Mot de passe *</label>
                 <input required value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="••••••••" style={{ padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px', color: '#0f172a' }} />
               </div>
             </div>

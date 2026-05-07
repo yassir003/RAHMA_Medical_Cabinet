@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
-  getMedecinMe, getConsultationsByMedecin, getRendezVous,
+  getMedecinMe, getConsultationsByMedecin, getMyRdvsAsMedecin,
   getPatients, createConsultation, updateRendezVousStatut,
   type Medecin, type Consultation, type RendezVous, type Patient,
   ApiError,
@@ -130,12 +130,13 @@ export default function DoctorWorkspacePage() {
       .finally(() => setConsLoading(false));
   }, [medecin]);
 
-  // ── Load RDVs ─────────────────────────────────────────────────────────────
+  // ── Load RDVs — server-side filtered by authenticated médecin ─────────────
   const loadRdvs = useCallback(() => {
     if (!medecin) return;
     setRdvLoading(true);
-    getRendezVous(0, 100)
-      .then((r) => setRdvs(r.content.filter((rv) => rv.medecinId === medecin.id)))
+    // Uses GET /rendez-vous/medecin/me → only this doctor's appointments
+    getMyRdvsAsMedecin(0, 200, "desc")
+      .then((r) => setRdvs(r.content))
       .finally(() => setRdvLoading(false));
   }, [medecin]);
 

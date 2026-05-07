@@ -8,13 +8,14 @@ import {
   getMyRendezVous,
   getMyNotifications,
   getUnreadCount,
+  updateMyProfile,
   type Patient,
   type RendezVous,
   type Notification,
 } from "@/lib/api";
 import {
   CalendarRange, FileText, Bell, User, Activity,
-  ChevronRight, Clock, CheckCircle, XCircle, AlertCircle
+  ChevronRight, Clock, Edit2, X, Save, Loader2
 } from "lucide-react";
 
 const STATUS_STYLE: Record<string, { color: string; bg: string; label: string }> = {
@@ -47,6 +48,39 @@ export default function PatientHomePage() {
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  // ── Edit profile modal ───────────────────────────────────────────────────
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ telephone: "", adresse: "", groupeSanguin: "", allergies: "", antecedents: "" });
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  function openEdit() {
+    setEditForm({
+      telephone: profile?.telephone ?? "",
+      adresse: profile?.adresse ?? "",
+      groupeSanguin: profile?.groupeSanguin ?? "",
+      allergies: profile?.allergies ?? "",
+      antecedents: profile?.antecedents ?? "",
+    });
+    setSaveError("");
+    setEditOpen(true);
+  }
+
+  async function handleSaveProfile(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setSaveError("");
+    try {
+      const updated = await updateMyProfile(editForm);
+      setProfile(updated);
+      setEditOpen(false);
+    } catch (err: any) {
+      setSaveError(err.message || "Erreur lors de la mise à jour.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -93,8 +127,16 @@ export default function PatientHomePage() {
             </span>
           )}
         </div>
-        <div style={{ opacity: 0.2 }}>
-          <User size={80} />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 16 }}>
+          <div style={{ opacity: 0.2 }}>
+            <User size={60} />
+          </div>
+          <button
+            onClick={openEdit}
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 10, border: "2px solid rgba(255,255,255,0.5)", background: "rgba(255,255,255,0.15)", color: "white", fontWeight: 600, fontSize: 14, cursor: "pointer", backdropFilter: "blur(4px)" }}
+          >
+            <Edit2 size={16} /> Modifier mon profil
+          </button>
         </div>
       </div>
 
@@ -205,6 +247,94 @@ export default function PatientHomePage() {
           ))}
         </div>
       </div>
+
+      {/* ── Edit profile modal ─────────────────────────────────────────── */}
+      {editOpen && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ background: "white", borderRadius: 20, padding: 36, width: "100%", maxWidth: 560, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", maxHeight: "90vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+              <div>
+                <h3 style={{ fontSize: 20, fontWeight: 700, color: "#0f172a", margin: "0 0 4px" }}>Modifier mon profil</h3>
+                <p style={{ fontSize: 14, color: "#64748b", margin: 0 }}>Mettez à jour vos informations personnelles.</p>
+              </div>
+              <button onClick={() => setEditOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}>
+                <X size={22} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProfile} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              {/* Read-only info */}
+              <div style={{ background: "#f8fafc", borderRadius: 12, padding: "14px 18px", fontSize: 13, color: "#64748b" }}>
+                <strong style={{ color: "#0f172a" }}>{profile?.prenom} {profile?.nom}</strong> · CIN : {profile?.cin}
+                <span style={{ display: "block", marginTop: 2 }}>Ces informations ne peuvent être modifiées que par l'administration.</span>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Téléphone</label>
+                  <input type="tel" value={editForm.telephone}
+                    onChange={e => setEditForm(p => ({ ...p, telephone: e.target.value }))}
+                    placeholder="+212 6xx xxx xxx"
+                    style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Groupe sanguin</label>
+                  <select value={editForm.groupeSanguin}
+                    onChange={e => setEditForm(p => ({ ...p, groupeSanguin: e.target.value }))}
+                    style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 14, outline: "none", background: "white" }}>
+                    <option value="">— Non renseigné —</option>
+                    {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Adresse</label>
+                <input type="text" value={editForm.adresse}
+                  onChange={e => setEditForm(p => ({ ...p, adresse: e.target.value }))}
+                  placeholder="Votre adresse complète"
+                  style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 14, outline: "none" }} />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Allergies connues</label>
+                <textarea value={editForm.allergies}
+                  onChange={e => setEditForm(p => ({ ...p, allergies: e.target.value }))}
+                  placeholder="Listez vos allergies médicamenteuses ou alimentaires…"
+                  rows={3}
+                  style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 14, outline: "none", resize: "vertical" }} />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Antécédents médicaux</label>
+                <textarea value={editForm.antecedents}
+                  onChange={e => setEditForm(p => ({ ...p, antecedents: e.target.value }))}
+                  placeholder="Maladies chroniques, chirurgies passées…"
+                  rows={3}
+                  style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 14, outline: "none", resize: "vertical" }} />
+              </div>
+
+              {saveError && (
+                <div style={{ padding: "10px 14px", background: "#fef2f2", borderRadius: 10, color: "#dc2626", fontSize: 13 }}>
+                  {saveError}
+                </div>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 8 }}>
+                <button type="button" onClick={() => setEditOpen(false)}
+                  style={{ padding: "11px 22px", borderRadius: 10, border: "1px solid #e2e8f0", background: "white", color: "#475569", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
+                  Annuler
+                </button>
+                <button type="submit" disabled={saving}
+                  style={{ padding: "11px 28px", borderRadius: 10, border: "none", background: saving ? "#cbd5e1" : "var(--primary, #2fb5fc)", color: "white", fontWeight: 700, fontSize: 14, cursor: saving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                  {saving ? <><Loader2 size={16} style={{ animation: "spin .8s linear infinite" }} /> Enregistrement…</> : <><Save size={16} /> Enregistrer</>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }

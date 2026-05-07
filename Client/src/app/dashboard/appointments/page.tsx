@@ -6,10 +6,11 @@ import {
   X, Check, AlertCircle, Loader2, Trash2, Edit2, Stethoscope,
 } from "lucide-react";
 import {
-  getRendezVousAll, createRendezVous, updateRendezVousFull, updateRendezVousStatut,
-  deleteRendezVous, getPatients, getMedecins, RendezVous, RendezVousRequestDto,
-  Patient, Medecin, ApiError,
+  getRendezVousAll, getMyRdvsAsMedecin, createRendezVous, updateRendezVousFull,
+  updateRendezVousStatut, deleteRendezVous, getPatients, getMedecins,
+  RendezVous, RendezVousRequestDto, Patient, Medecin, ApiError,
 } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -254,6 +255,8 @@ function RdvModal({
 
 export default function AppointmentsPage() {
   const today = new Date();
+  const { user } = useAuth();
+  const isMedecin = user?.role === "MEDECIN";
 
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth()); // 0-based
@@ -281,14 +284,21 @@ export default function AppointmentsPage() {
   const loadRdvs = useCallback(async () => {
     setLoading(true);
     try {
-      const [rdvRes, medRes] = await Promise.all([
-        getRendezVousAll(0, 500),
-        getMedecins(0, 100),
-      ]);
-      setRdvList(rdvRes.content);
-      setMedecins(medRes.content);
+      if (isMedecin) {
+        // MEDECIN only sees their own appointments — use the role-specific endpoint
+        const rdvRes = await getMyRdvsAsMedecin(0, 500, "desc");
+        setRdvList(rdvRes.content);
+      } else {
+        // ADMIN / SECRETAIRE see all appointments
+        const [rdvRes, medRes] = await Promise.all([
+          getRendezVousAll(0, 500),
+          getMedecins(0, 100),
+        ]);
+        setRdvList(rdvRes.content);
+        setMedecins(medRes.content);
+      }
     } catch { /* ignore */ } finally { setLoading(false); }
-  }, []);
+  }, [isMedecin]);
 
   useEffect(() => { loadRdvs(); }, [loadRdvs]);
 
@@ -404,18 +414,20 @@ export default function AppointmentsPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
-            Gestion des Rendez-vous
+            {isMedecin ? "Mes Rendez-vous" : "Gestion des Rendez-vous"}
           </h1>
           <p style={{ color: "#64748b", fontSize: 14 }}>
-            Planning du cabinet — {loading ? "chargement…" : `${rdvList.length} rendez-vous`}
+            {isMedecin ? "Vos consultations planifiées" : "Planning du cabinet"} — {loading ? "chargement…" : `${rdvList.length} rendez-vous`}
           </p>
         </div>
-        <button onClick={() => { setCreateModal(true); setModalError(""); }}
-          style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 20px",
-            borderRadius: 10, border: "none", background: "#2fb5fc", color: "white",
-            fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-          <Plus size={16} /> Nouveau RDV
-        </button>
+        {!isMedecin && (
+          <button onClick={() => { setCreateModal(true); setModalError(""); }}
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 20px",
+              borderRadius: 10, border: "none", background: "#2fb5fc", color: "white",
+              fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+            <Plus size={16} /> Nouveau RDV
+          </button>
+        )}
       </div>
 
       {/* Stats row */}
@@ -549,7 +561,7 @@ export default function AppointmentsPage() {
                 ? new Date(selectedDay + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })
                 : "Sélectionnez un jour"}
             </h3>
-            {selectedDay && (
+            {selectedDay && !isMedecin && (
               <button onClick={() => { setCreateModal(true); setModalError(""); }}
                 style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid #e2e8f0",
                   background: "white", display: "flex", alignItems: "center", justifyContent: "center",
@@ -573,9 +585,13 @@ export default function AppointmentsPage() {
               {dayRdvs.map((rv) => {
                 const st = STATUT_STYLE[rv.statut] ?? STATUT_STYLE.PLANIFIE;
                 return (
-                  <div key={rv.id} style={{ borderLeft: `3px solid ${st.color}`, borderRadius: 8,
-                    padding: "12px 14px", background: "#fafbfc", border: `1px solid #f1f5f9`,
-                    borderLeftColor: st.color, borderLeftWidth: 3 }}>
+                  <div key={rv.id} style={{
+                    borderRadius: 8, padding: "12px 14px", background: "#fafbfc",
+                    borderTopWidth: 1, borderTopStyle: "solid", borderTopColor: "#f1f5f9",
+                    borderRightWidth: 1, borderRightStyle: "solid", borderRightColor: "#f1f5f9",
+                    borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: "#f1f5f9",
+                    borderLeftWidth: 3, borderLeftStyle: "solid", borderLeftColor: st.color,
+                  }}>
 
                     {/* Time + badge */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -628,19 +644,23 @@ export default function AppointmentsPage() {
                           </button>
                         </>
                       )}
-                      <button onClick={() => {
-                        setEditTarget(rv); setModalError("");
-                      }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6,
-                        border: "1px solid #e2e8f0", background: "white", color: "#475569",
-                        fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                        <Edit2 size={11} /> Modifier
-                      </button>
-                      <button onClick={() => setDeleteTarget(rv)}
-                        style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6,
-                          border: "none", background: "#fef2f2", color: "#dc2626",
-                          fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                        <Trash2 size={11} />
-                      </button>
+                      {!isMedecin && (
+                        <>
+                          <button onClick={() => {
+                            setEditTarget(rv); setModalError("");
+                          }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                            border: "1px solid #e2e8f0", background: "white", color: "#475569",
+                            fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                            <Edit2 size={11} /> Modifier
+                          </button>
+                          <button onClick={() => setDeleteTarget(rv)}
+                            style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                              border: "none", background: "#fef2f2", color: "#dc2626",
+                              fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                            <Trash2 size={11} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
@@ -667,7 +687,10 @@ export default function AppointmentsPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
                 <tr>
-                  {["Date & Heure","Patient","Médecin","Motif","Statut","Actions"].map((h) => (
+                  {(isMedecin
+                    ? ["Date & Heure","Patient","Motif","Statut","Actions"]
+                    : ["Date & Heure","Patient","Médecin","Motif","Statut","Actions"]
+                  ).map((h) => (
                     <th key={h} style={{ textAlign: "left", padding: "10px 14px", fontSize: 12,
                       fontWeight: 700, color: "#94a3b8", borderBottom: "1px solid #f1f5f9" }}>{h}</th>
                   ))}
@@ -693,9 +716,11 @@ export default function AppointmentsPage() {
                           {rv.patientPrenom} {rv.patientNom}
                         </div>
                       </td>
-                      <td style={{ padding: "10px 14px", color: "#475569" }}>
-                        Dr. {rv.medecinPrenom} {rv.medecinNom}
-                      </td>
+                      {!isMedecin && (
+                        <td style={{ padding: "10px 14px", color: "#475569" }}>
+                          Dr. {rv.medecinPrenom} {rv.medecinNom}
+                        </td>
+                      )}
                       <td style={{ padding: "10px 14px", color: "#64748b", maxWidth: 180 }}>
                         <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {rv.motif}
@@ -713,16 +738,18 @@ export default function AppointmentsPage() {
                               {updatingId === rv.id ? <Spinner /> : "Confirmer"}
                             </button>
                           )}
-                          <button onClick={() => {
-                            setSelectedDay(isoToDate(rv.dateHeure));
-                            setYear(new Date(rv.dateHeure).getFullYear());
-                            setMonth(new Date(rv.dateHeure).getMonth());
-                            setEditTarget(rv); setModalError("");
-                          }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6,
-                            border: "1px solid #e2e8f0", background: "white", color: "#475569",
-                            fontWeight: 600, cursor: "pointer" }}>
-                            <Edit2 size={11} />
-                          </button>
+                          {!isMedecin && (
+                            <button onClick={() => {
+                              setSelectedDay(isoToDate(rv.dateHeure));
+                              setYear(new Date(rv.dateHeure).getFullYear());
+                              setMonth(new Date(rv.dateHeure).getMonth());
+                              setEditTarget(rv); setModalError("");
+                            }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                              border: "1px solid #e2e8f0", background: "white", color: "#475569",
+                              fontWeight: 600, cursor: "pointer" }}>
+                              <Edit2 size={11} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

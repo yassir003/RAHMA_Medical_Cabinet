@@ -691,6 +691,11 @@ export async function getMyProfile(): Promise<Patient> {
   return request<Patient>("/patients/me");
 }
 
+/** PATCH /patients/me — patient updates their own non-critical info */
+export async function updateMyProfile(data: Partial<PatientRequestDto>): Promise<Patient> {
+  return request<Patient>("/patients/me", { method: "PATCH", body: JSON.stringify(data) });
+}
+
 /** GET /patients/me/rendez-vous — paginated list of own RDVs */
 export async function getMyRendezVous(
   page = 0,
@@ -714,6 +719,16 @@ export async function getMyConsultations(
 /** PATCH /rendez-vous/{id}/annuler — patient cancels their own RDV */
 export async function cancelMyRendezVous(id: number): Promise<RendezVous> {
   return request<RendezVous>(`/rendez-vous/${id}/annuler`, { method: "PATCH" });
+}
+
+/** GET /rendez-vous/medecin/me — all appointments for the authenticated médecin */
+export async function getMyRdvsAsMedecin(
+  page = 0,
+  size = 200,
+  direction: "asc" | "desc" = "desc"
+): Promise<PaginatedResponse<RendezVous>> {
+  const q = new URLSearchParams({ page: String(page), size: String(size), sortBy: "dateHeure", direction });
+  return request<PaginatedResponse<RendezVous>>(`/rendez-vous/medecin/me?${q}`);
 }
 
 /** GET /rendez-vous/disponibilites/{medecinId}?date=YYYY-MM-DD */

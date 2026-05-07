@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Search, PlusCircle, Mail, Phone, Stethoscope, Loader2, AlertCircle, Trash2, User } from "lucide-react";
-import { getMedecins, deleteMedecin, type Medecin } from "@/lib/api";
+import { Search, PlusCircle, Mail, Phone, Loader2, AlertCircle, Trash2, User, Edit2, X, Save } from "lucide-react";
+import { getMedecins, deleteMedecin, updateMedecin, type Medecin, type MedecinRequestDto } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
 export default function DoctorsListPage() {
@@ -19,6 +19,12 @@ export default function DoctorsListPage() {
   const [page, setPage]         = useState(0);
   const [deleting, setDeleting] = useState<number | null>(null);
   const PAGE_SIZE = 10;
+
+  // ── Edit state ──────────────────────────────────────────────────────────
+  const [editDoc, setEditDoc] = useState<Medecin | null>(null);
+  const [editForm, setEditForm] = useState<Partial<MedecinRequestDto>>({});
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
 
   const load = useCallback(() => {
     setLoading(true);
@@ -36,6 +42,28 @@ export default function DoctorsListPage() {
     const t = setTimeout(() => setPage(0), 300);
     return () => clearTimeout(t);
   }, [search]);
+
+  function openEdit(doc: Medecin) {
+    setEditDoc(doc);
+    setEditForm({ nom: doc.nom, prenom: doc.prenom, specialite: doc.specialite, telephone: doc.telephone });
+    setEditError("");
+  }
+
+  async function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editDoc) return;
+    setEditSaving(true);
+    setEditError("");
+    try {
+      await updateMedecin(editDoc.id, editForm);
+      setEditDoc(null);
+      load();
+    } catch (err: any) {
+      setEditError(err.message || "Erreur lors de la mise à jour.");
+    } finally {
+      setEditSaving(false);
+    }
+  }
 
   async function handleDelete(id: number, nom: string) {
     if (!confirm(`Supprimer le Dr. ${nom} ? Cette action est irréversible.`)) return;
@@ -152,17 +180,26 @@ export default function DoctorsListPage() {
                 </div>
 
                 {isAdmin && (
-                  <button
-                    disabled={deleting === doc.id}
-                    onClick={() => handleDelete(doc.id, `${doc.prenom} ${doc.nom}`)}
-                    style={{ background: "white", border: "1px solid #fee2e2", padding: "8px 12px",
-                      borderRadius: 10, cursor: deleting === doc.id ? "not-allowed" : "pointer",
-                      color: "#ef4444", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
-                    {deleting === doc.id
-                      ? <Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} />
-                      : <Trash2 size={15} />}
-                    Supprimer
-                  </button>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => openEdit(doc)}
+                      style={{ background: "white", border: "1px solid #dbeafe", padding: "8px 14px",
+                        borderRadius: 10, cursor: "pointer", color: "#2563eb",
+                        display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
+                      <Edit2 size={15} /> Modifier
+                    </button>
+                    <button
+                      disabled={deleting === doc.id}
+                      onClick={() => handleDelete(doc.id, `${doc.prenom} ${doc.nom}`)}
+                      style={{ background: "white", border: "1px solid #fee2e2", padding: "8px 14px",
+                        borderRadius: 10, cursor: deleting === doc.id ? "not-allowed" : "pointer",
+                        color: "#ef4444", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
+                      {deleting === doc.id
+                        ? <Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} />
+                        : <Trash2 size={15} />}
+                      Supprimer
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
@@ -193,6 +230,75 @@ export default function DoctorsListPage() {
       </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      {/* ── Edit Doctor Modal ─────────────────────────────────────────── */}
+      {editDoc && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ background: "white", borderRadius: 20, padding: 36, width: "100%", maxWidth: 540, boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+              <div>
+                <h3 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: "0 0 4px" }}>
+                  Modifier le médecin
+                </h3>
+                <p style={{ fontSize: 14, color: "#64748b", margin: 0 }}>
+                  Dr. {editDoc.prenom} {editDoc.nom}
+                </p>
+              </div>
+              <button onClick={() => setEditDoc(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}>
+                <X size={22} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Prénom *</label>
+                  <input required type="text" value={editForm.prenom ?? ""}
+                    onChange={e => setEditForm(p => ({ ...p, prenom: e.target.value }))}
+                    style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Nom *</label>
+                  <input required type="text" value={editForm.nom ?? ""}
+                    onChange={e => setEditForm(p => ({ ...p, nom: e.target.value }))}
+                    style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                </div>
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Spécialité *</label>
+                <input required type="text" value={editForm.specialite ?? ""}
+                  onChange={e => setEditForm(p => ({ ...p, specialite: e.target.value }))}
+                  placeholder="Ex : Cardiologie, Pédiatrie…"
+                  style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 14, outline: "none" }} />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Téléphone</label>
+                <input type="tel" value={editForm.telephone ?? ""}
+                  onChange={e => setEditForm(p => ({ ...p, telephone: e.target.value }))}
+                  placeholder="+212 6xx xxx xxx"
+                  style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 14, outline: "none" }} />
+              </div>
+
+              {editError && (
+                <div style={{ padding: "10px 14px", background: "#fef2f2", borderRadius: 10, color: "#dc2626", fontSize: 13 }}>
+                  {editError}
+                </div>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 8 }}>
+                <button type="button" onClick={() => setEditDoc(null)}
+                  style={{ padding: "11px 22px", borderRadius: 10, border: "1px solid #e2e8f0", background: "white", color: "#475569", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
+                  Annuler
+                </button>
+                <button type="submit" disabled={editSaving}
+                  style={{ padding: "11px 28px", borderRadius: 10, border: "none", background: editSaving ? "#cbd5e1" : "var(--primary, #2fb5fc)", color: "white", fontWeight: 700, fontSize: 14, cursor: editSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                  {editSaving ? <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> Enregistrement…</> : <><Save size={16} /> Enregistrer</>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
