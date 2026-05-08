@@ -61,13 +61,14 @@ export default function ConsultationReportPage() {
   const router = useRouter();
   const { user } = useAuth();
   const id = Number(params.id);
+  const validId = !isNaN(id) && id > 0;
 
   const [consultation, setConsultation] = useState<Consultation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !id) return;
+    if (!user || !validId) return;
     setIsLoading(true);
     getConsultationReport(id)
       .then(data => { setConsultation(data); setError(null); })

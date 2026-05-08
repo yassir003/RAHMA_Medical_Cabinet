@@ -85,12 +85,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const email = user?.email ?? '';
 
   useEffect(() => {
-    if (role !== 'PATIENT') return;
+    if (!user || role !== 'PATIENT') return;
     const load = () => getUnreadCount().then(setUnreadCount).catch(() => {});
     load();
     pollRef.current = setInterval(load, 30_000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [role]);
+  }, [user, role]);
 
   // Map backend pages to menu items with icons
   // MEDECIN has their own workspace — the generic "Dashboard" entry is excluded for them

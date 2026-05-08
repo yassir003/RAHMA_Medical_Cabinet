@@ -54,9 +54,11 @@ export default function ConsultationDetailPage() {
   });
 
   // ── Load ────────────────────────────────────────────────────────────────
+  const numericId = Number(id);
+
   useEffect(() => {
-    if (!id) return;
-    getConsultationById(Number(id))
+    if (!id || isNaN(numericId) || numericId <= 0) return;
+    getConsultationById(numericId)
       .then((c) => {
         setConsultation(c);
         setForm({

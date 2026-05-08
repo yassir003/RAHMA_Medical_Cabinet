@@ -161,7 +161,7 @@ function DossierView() {
                     </td>
                     <td style={{ padding: '16px 0', textAlign: 'right' }}>
                       <button
-                        onClick={() => router.push(`/dashboard/reports/${rep.consultationId}`)}
+                        onClick={() => rep.consultationId && router.push(`/dashboard/reports/${rep.consultationId}`)}
                         style={{ background: '#f0f9ff', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer', color: '#3b82f6' }}
                         title="Voir la consultation">
                         <Eye size={16} />
@@ -334,7 +334,7 @@ function MedecinConsultationsView() {
                     </td>
                     <td style={{ padding: '16px 0', textAlign: 'right' }}>
                       <button
-                        onClick={() => router.push(`/dashboard/reports/${c.id}`)}
+                        onClick={() => c.id && router.push(`/dashboard/reports/${c.id}`)}
                         style={{ background: '#f0f9ff', border: 'none', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', color: '#3b82f6', fontWeight: 600, fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                         <Eye size={14} /> Voir
                       </button>

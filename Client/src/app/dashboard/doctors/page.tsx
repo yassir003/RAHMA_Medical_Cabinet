@@ -195,6 +195,31 @@ export default function DoctorWorkspacePage() {
     return d.toDateString() === t.toDateString() && r.statut !== "ANNULE";
   }).length;
 
+  // ── Open modal pre-filled from an RDV ────────────────────────────────────
+  function openModalForRdv(rv: RendezVous) {
+    // Build a minimal Patient stub from RDV data — only id/nom/prenom are used by the modal
+    setSelectedPatient({
+      id: rv.patientId,
+      nom: rv.patientNom,
+      prenom: rv.patientPrenom,
+      cin: "",
+      dateNaissance: "",
+      telephone: "",
+      adresse: "",
+    } as Patient);
+    // Pre-fill date from the appointment (strip seconds for datetime-local input)
+    setNewCons({
+      dateVisite: rv.dateHeure ? rv.dateHeure.slice(0, 16) : "",
+      motif: rv.motif || "",
+      notes: rv.notes || "",
+      diagnostic: "",
+      actesRealises: "",
+      montantTotal: "",
+    });
+    setCreateError("");
+    setModalOpen(true);
+  }
+
   // ── Create consultation handler ───────────────────────────────────────────
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -338,7 +363,7 @@ export default function DoctorWorkspacePage() {
                       padding: "16px 20px", border: "1px solid #f1f5f9", borderRadius: 12,
                       background: "#fafafa", cursor: "pointer", transition: "box-shadow 0.2s",
                     }}
-                      onClick={() => router.push(`/dashboard/doctors/consultations/${c.id}`)}
+                      onClick={() => c.id && router.push(`/dashboard/doctors/consultations/${c.id}`)}
                       onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)")}
                       onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
                     >
@@ -548,7 +573,7 @@ export default function DoctorWorkspacePage() {
                               fontSize: 12, fontWeight: 600, cursor: rv.statut === "CONFIRME" ? "default" : "pointer" }}>
                             {rv.statut === "CONFIRME" ? "✓ Confirmé" : "Confirmer"}
                           </button>
-                          <button onClick={() => router.push(`/dashboard/doctors/consultations/new?rdvId=${rv.id}&patientId=${rv.patientId}&medecinId=${medecin?.id}`)}
+                          <button onClick={() => openModalForRdv(rv)}
                             style={{ padding: "5px 12px", borderRadius: 7, border: "none",
                               background: "var(--primary, #2fb5fc)", color: "white",
                               fontSize: 12, fontWeight: 600, cursor: "pointer" }}>

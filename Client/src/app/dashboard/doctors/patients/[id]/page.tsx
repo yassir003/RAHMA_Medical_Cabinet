@@ -247,7 +247,7 @@ export default function PatientDossierPage() {
                     padding: "18px 22px", border: "1px solid #f1f5f9", borderRadius: 12,
                     background: "#fafafa", cursor: "pointer", transition: "box-shadow 0.2s",
                   }}
-                    onClick={() => router.push(`/dashboard/doctors/consultations/${c.id}`)}
+                    onClick={() => c.id && router.push(`/dashboard/doctors/consultations/${c.id}`)}
                     onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)")}
                     onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
                   >

@@ -157,6 +157,28 @@ export default function LoginPage() {
 
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </form>
+
+      {/* Sign-up prompt */}
+      <div style={{
+        marginTop: '28px',
+        paddingTop: '24px',
+        borderTop: '1px solid #e2e8f0',
+        textAlign: 'center',
+        fontSize: '14px',
+        color: '#64748b',
+      }}>
+        Vous n&apos;avez pas encore de compte ?{' '}
+        <Link
+          href="/register"
+          style={{
+            color: '#2fb5fc',
+            fontWeight: 700,
+            textDecoration: 'none',
+          }}
+        >
+          Créer un compte
+        </Link>
+      </div>
     </div>
   );
 }
