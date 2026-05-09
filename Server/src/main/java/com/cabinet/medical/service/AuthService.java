@@ -104,7 +104,8 @@ public class AuthService {
                     new PageItem("Accueil", "/dashboard/patient"),
                     new PageItem("Rendez-vous", "/dashboard/patient/appointments"),
                     new PageItem("Suivi Médical", "/dashboard/patient/medical"),
-                    new PageItem("Notifications", "/dashboard/patient/notifications")
+                    new PageItem("Notifications", "/dashboard/patient/notifications"),
+                    new PageItem("Assistant IA", "/dashboard/patient/chat")
                 ));
                 break;
             default:

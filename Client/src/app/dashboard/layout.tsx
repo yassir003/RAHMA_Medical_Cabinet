@@ -43,6 +43,8 @@ function getIconForPage(name: string) {
     case 'Create Doctor':
     case 'Create Secretary':
       return UserPlus;
+    case 'Assistant IA':
+      return MessageSquare;
     case 'Message':
       return MessageSquare;
     case 'Log':
