@@ -34,20 +34,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource))
+            .cors(org.springframework.security.config.Customizer.withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(e -> e
                 .accessDeniedHandler(accessDeniedHandler)
                 .authenticationEntryPoint(authenticationEntryPoint))
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
-                .requestMatchers(HttpMethod.GET,  "/api/v1/medecins").permitAll()
-                // AI chat is publicly accessible; tools that require auth check SecurityContext
-                // internally and return a friendly message when the caller is anonymous.
-                // A logged-in patient's JWT is still processed by the JWT filter so the
-                // SecurityContext is populated for appointment/history tools.
-                .requestMatchers(HttpMethod.POST, "/api/v1/chat").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/medecins").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()

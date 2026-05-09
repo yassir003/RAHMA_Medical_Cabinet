@@ -6,7 +6,11 @@ import com.cabinet.medical.service.ChatAiService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/chat")
@@ -29,8 +33,10 @@ public class ChatAiController {
      * this enables the appointment-creation and history-lookup tools.
      */
     @PostMapping
-    public ResponseEntity<ApiResponse<String>> chat(@Valid @RequestBody ChatRequest request) {
-        String reply = chatAiService.chat(request.getMessages());
-        return ResponseEntity.ok(ApiResponse.success(reply, "Réponse IA", 200));
+    public ResponseEntity<ApiResponse<String>> chat(
+            @Valid @RequestBody ChatRequest request,
+            Authentication authentication) {
+        String response = chatAiService.chat(request.normalizedMessages(), authentication);
+        return ResponseEntity.ok(ApiResponse.success(response, "Reponse IA", 200));
     }
 }

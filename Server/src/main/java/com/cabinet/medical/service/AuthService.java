@@ -84,9 +84,7 @@ public class AuthService {
                     new PageItem("Workspace", "/dashboard/doctors"),
                     new PageItem("Appointment", "/dashboard/appointments"),
                     new PageItem("Medical Report", "/dashboard/reports"),
-                    new PageItem("Patient", "/dashboard/doctors/patients"),
-                    new PageItem("Message", "/dashboard/messages"),
-                    new PageItem("Setting", "/dashboard/settings")
+                    new PageItem("Patient", "/dashboard/doctors/patients")
                 ));
                 break;
             case "SECRETAIRE":
@@ -94,9 +92,7 @@ public class AuthService {
                     new PageItem("Workspace", "/dashboard/secretary"),
                     new PageItem("Appointment", "/dashboard/appointments"),
                     new PageItem("Patient", "/dashboard/patients"),
-                    new PageItem("Mutuals", "/dashboard/mutuals"),
-                    new PageItem("Message", "/dashboard/messages"),
-                    new PageItem("Setting", "/dashboard/settings")
+                    new PageItem("Mutuals", "/dashboard/mutuals")
                 ));
                 break;
             case "PATIENT":
@@ -104,8 +100,7 @@ public class AuthService {
                     new PageItem("Accueil", "/dashboard/patient"),
                     new PageItem("Rendez-vous", "/dashboard/patient/appointments"),
                     new PageItem("Suivi Médical", "/dashboard/patient/medical"),
-                    new PageItem("Notifications", "/dashboard/patient/notifications"),
-                    new PageItem("Assistant IA", "/dashboard/patient/chat")
+                    new PageItem("Notifications", "/dashboard/patient/notifications")
                 ));
                 break;
             default:
