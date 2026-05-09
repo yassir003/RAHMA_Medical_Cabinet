@@ -258,15 +258,6 @@ export default function PatientChatPage() {
         flexShrink: 0, paddingTop: 12, paddingBottom: 8,
         borderTop: "1px solid #e2e8f0",
       }}>
-        {!token && (
-          <div style={{
-            marginBottom: 10, padding: "10px 14px", borderRadius: 10,
-            background: "#fef9c3", border: "1px solid #fde047",
-            fontSize: 13, color: "#854d0e",
-          }}>
-            Vous devez être connecté pour utiliser l'assistant.
-          </div>
-        )}
 
         <div style={{
           display: "flex", gap: 10, alignItems: "flex-end",
@@ -283,7 +274,7 @@ export default function PatientChatPage() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Posez votre question… (Entrée pour envoyer, Maj+Entrée pour saut de ligne)"
-            disabled={loading || !token}
+            disabled={loading}
             rows={1}
             style={{
               flex: 1, resize: "none", border: "none", outline: "none",
@@ -294,17 +285,17 @@ export default function PatientChatPage() {
           />
           <button
             onClick={sendMessage}
-            disabled={!input.trim() || loading || !token}
+            disabled={!input.trim() || loading}
             style={{
               width: 40, height: 40, borderRadius: 12, border: "none", cursor: "pointer",
-              background: !input.trim() || loading || !token
+              background: !input.trim() || loading
                 ? "#e2e8f0"
                 : "linear-gradient(135deg, #2fb5fc 0%, #0284c7 100%)",
               display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0, transition: "background 0.2s",
             }}
           >
-            <Send size={17} color={!input.trim() || loading || !token ? "#94a3b8" : "white"} />
+            <Send size={17} color={!input.trim() || loading ? "#94a3b8" : "white"} />
           </button>
         </div>
 
