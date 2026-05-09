@@ -97,7 +97,6 @@ public class RendezVousController {
     }
 
     @GetMapping("/disponibilites/{medecinId}")
-    @PreAuthorize("hasAnyRole('PATIENT','SECRETAIRE','MEDECIN','ADMIN')")
     public ResponseEntity<ApiResponse<List<String>>> getDisponibilites(
             @PathVariable Long medecinId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {

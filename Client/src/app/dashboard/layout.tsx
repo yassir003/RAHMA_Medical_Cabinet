@@ -84,7 +84,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const role: Role = user?.role ?? 'PATIENT';
-  const email = user?.email ?? '';
+  const email = user?.email ?? 'Invité';
 
   useEffect(() => {
     if (!user || role !== 'PATIENT') return;
@@ -137,23 +137,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             })}
           </nav>
 
-          {/* Logout button at sidebar bottom */}
+          {/* Login/Logout button at sidebar bottom */}
           <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
-            <button
-              onClick={logout}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '12px',
-                width: '100%', padding: '14px 16px', borderRadius: '12px',
-                border: 'none', background: 'transparent', cursor: 'pointer',
-                color: '#ef4444', fontWeight: 500, fontSize: '14px',
-                transition: 'background 0.2s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#fef2f2')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-            >
-              <LogOut size={20} />
-              <span>Logout</span>
-            </button>
+            {user ? (
+              <button
+                onClick={logout}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  width: '100%', padding: '14px 16px', borderRadius: '12px',
+                  border: 'none', background: 'transparent', cursor: 'pointer',
+                  color: '#ef4444', fontWeight: 500, fontSize: '14px',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#fef2f2')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <LogOut size={20} />
+                <span>Logout</span>
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  width: '100%', padding: '14px 16px', borderRadius: '12px',
+                  border: 'none', background: 'transparent', cursor: 'pointer',
+                  color: 'var(--primary)', fontWeight: 500, fontSize: '14px',
+                  transition: 'background 0.2s', textDecoration: 'none'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f0f9ff')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <LogOut size={20} style={{ transform: 'rotate(180deg)' }} />
+                <span>Connexion</span>
+              </Link>
+            )}
           </div>
         </aside>
 
@@ -192,8 +210,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '6px', borderRadius: '12px' }}>
                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', paddingRight: '4px' }}>
                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>{email}</span>
-                   <span style={{ fontSize: '11px', fontWeight: 700, color: 'white', backgroundColor: 'var(--primary)', padding: '2px 8px', borderRadius: '12px', marginTop: '4px' }}>
-                     {roleBadgeLabel(role)}
+                   <span style={{ fontSize: '11px', fontWeight: 700, color: 'white', backgroundColor: user ? 'var(--primary)' : '#94a3b8', padding: '2px 8px', borderRadius: '12px', marginTop: '4px' }}>
+                     {user ? roleBadgeLabel(role) : 'Public'}
                    </span>
                  </div>
                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#e2e8f0', backgroundImage: `url("https://ui-avatars.com/api/?name=${encodeURIComponent(email)}&background=e0f2fe&color=0284c7")`, backgroundSize: 'cover' }}></div>

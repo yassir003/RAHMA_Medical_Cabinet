@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 /**
@@ -17,14 +17,16 @@ export default function ProtectedRoute({
 }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
+    if (pathname === "/dashboard/patient/chat") return;
     if (!isLoading && !isAuthenticated) {
       router.replace("/login");
     } else if (!isLoading && isAuthenticated && user?.passwordChanged === false) {
       router.replace("/change-password");
     }
-  }, [isLoading, isAuthenticated, user, router]);
+  }, [isLoading, isAuthenticated, user, router, pathname]);
 
   if (isLoading) {
     return (
@@ -52,7 +54,7 @@ export default function ProtectedRoute({
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && pathname !== "/dashboard/patient/chat") {
     return null; // Will redirect via the useEffect above
   }
 
