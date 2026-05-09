@@ -102,10 +102,14 @@ export default function PatientChatPage() {
       .map((m) => ({ role: m.role, content: m.content }));
 
     try {
-      const res = await fetch("/api/chat", {
+      const BACKEND = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+      const res = await fetch(`${BACKEND}/api/v1/chat`, {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ messages: apiMessages, token }),
+        headers: {
+          "Content-Type":  "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ messages: apiMessages }),
       });
 
       if (!res.ok) {
@@ -114,7 +118,8 @@ export default function PatientChatPage() {
       }
 
       const data = await res.json();
-      const reply = data?.reply ?? "Désolé, je n'ai pas pu traiter votre demande.";
+      // Spring Boot wraps the response in ApiResponse: { success, data, message, ... }
+      const reply = data?.data ?? data?.reply ?? "Désolé, je n'ai pas pu traiter votre demande.";
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erreur inconnue";
