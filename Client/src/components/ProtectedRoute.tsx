@@ -20,7 +20,6 @@ export default function ProtectedRoute({
   const pathname = usePathname();
 
   useEffect(() => {
-    if (pathname === "/dashboard/patient/chat") return;
     if (!isLoading && !isAuthenticated) {
       router.replace("/login");
     } else if (!isLoading && isAuthenticated && user?.passwordChanged === false) {
@@ -54,7 +53,7 @@ export default function ProtectedRoute({
     );
   }
 
-  if (!isAuthenticated && pathname !== "/dashboard/patient/chat") {
+  if (!isAuthenticated) {
     return null; // Will redirect via the useEffect above
   }
 

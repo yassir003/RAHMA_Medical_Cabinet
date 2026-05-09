@@ -1,5 +1,6 @@
 "use client";
 
+import ChatWidget from "@/components/ChatWidget";
 import { AuthProvider } from "@/context/AuthContext";
 
 /**
@@ -12,5 +13,10 @@ export function AuthProviderWrapper({
 }: {
   children: React.ReactNode;
 }) {
-  return <AuthProvider>{children}</AuthProvider>;
+  return (
+    <AuthProvider>
+      {children}
+      <ChatWidget />
+    </AuthProvider>
+  );
 }
