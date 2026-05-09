@@ -1,15 +1,35 @@
 "use client";
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Logo } from '@/components/Logo';
 import { 
   Building2, Pill, Monitor, Heart, Activity, 
   Stethoscope, Shield, FlaskConical, Syringe, CheckCircle2
 } from 'lucide-react';
 import { useAuth, defaultRouteForRole } from '@/context/AuthContext';
+import { getMedecins, Medecin } from '@/lib/api';
 
 export default function LandingPage() {
   const { user } = useAuth();
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [doctors, setDoctors] = useState<Medecin[]>([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(true);
+
+  useEffect(() => {
+    async function fetchDoctors() {
+      try {
+        const response = await getMedecins(0, 4);
+        setDoctors(response.content);
+      } catch (error) {
+        console.error("Failed to fetch doctors", error);
+      } finally {
+        setLoadingDoctors(false);
+      }
+    }
+    fetchDoctors();
+  }, []);
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--background)' }}>
       
@@ -22,12 +42,11 @@ export default function LandingPage() {
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 60px', background: 'white', position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
         <Logo light={true} />
         <nav style={{ display: 'flex', gap: '30px', fontSize: '14px', fontWeight: 500, color: 'var(--foreground)' }}>
-          <Link href="/doctors" style={{ color: 'var(--primary)', fontWeight: 600 }}>Find Doctors</Link>
-          <Link href="#">Hospitals</Link>
-          <Link href="#">Medicines</Link>
-          <Link href="#">Surgeries</Link>
-          <Link href="#">Software For Provider</Link>
-          <Link href="#">Facilities</Link>
+          <Link href="/doctors" style={{ color: 'var(--primary)', fontWeight: 600 }}>Our Doctors</Link>
+          <Link href="/services">Services</Link>
+          <Link href="/about">About Us</Link>
+          <Link href="/login">Patient Portal</Link>
+          <Link href="/contact">Contact Us</Link>
         </nav>
         {user ? (
           <Link href={defaultRouteForRole(user.role)} style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
@@ -63,11 +82,12 @@ export default function LandingPage() {
             </Link>
           </div>
           <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end' }}>
-             <div style={{ width: '450px', height: '400px', backgroundColor: '#e0f2fe', borderTopLeftRadius: '200px', borderTopRightRadius: '200px', borderBottomRightRadius: '20px', borderBottomLeftRadius: '20px', position: 'relative' }}>
-                <div style={{ backgroundColor: 'white', padding: '8px 16px', borderRadius: '20px', position: 'absolute', top: '100px', right: '-20px', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+             <div style={{ width: '450px', height: '400px', position: 'relative', borderTopLeftRadius: '200px', borderTopRightRadius: '200px', borderBottomRightRadius: '20px', borderBottomLeftRadius: '20px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
+                <Image src="/images/doctor 73.png" alt="Doctor" fill style={{ objectFit: 'cover' }} />
+             </div>
+                <div style={{ backgroundColor: 'white', padding: '8px 16px', borderRadius: '20px', position: 'absolute', top: '100px', right: '-20px', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', zIndex: 10 }}>
                   <Shield size={16} color="var(--primary)" /> <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--secondary)' }}>Best Doctors</span>
                 </div>
-             </div>
           </div>
         </div>
       </section>
@@ -88,14 +108,11 @@ export default function LandingPage() {
              </div>
           ))}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', marginTop: '30px', fontSize: '15px', color: 'var(--secondary)', fontWeight: 500 }}>
-          <span>Now accepting new patients</span>
-          <span>Call us or book online</span>
-        </div>
+
       </div>
 
       {/* Specialisations */}
-      <section style={{ padding: '60px', textAlign: 'center', backgroundColor: '#f8fafc' }}>
+      <section id="services" style={{ padding: '60px', textAlign: 'center', backgroundColor: '#f8fafc' }}>
         <h2 style={{ fontSize: '32px', color: 'var(--secondary)', marginBottom: '40px', fontWeight: 700 }}>Find By Specialisation</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', maxWidth: '1000px', margin: '0 auto' }}>
           {[
@@ -116,32 +133,44 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
-        <button className="btn-primary" style={{ marginTop: '40px', padding: '12px 32px', display: 'inline-flex' }}>View All</button>
+        <Link href="/services">
+          <button className="btn-primary" style={{ marginTop: '40px', padding: '12px 32px', display: 'inline-flex' }}>View All</button>
+        </Link>
       </section>
 
       {/* Our Medical Specialist */}
       <section style={{ padding: '80px 60px', textAlign: 'center' }}>
         <h2 style={{ fontSize: '32px', color: 'var(--secondary)', marginBottom: '50px', fontWeight: 700 }}>Our Medical Specialist</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '30px', maxWidth: '1100px', margin: '0 auto' }}>
-          {[1,2,3,4].map(i => (
-             <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-               <div style={{ width: '220px', height: '280px', backgroundColor: 'var(--primary)', borderTopLeftRadius: '110px', borderTopRightRadius: '110px', marginBottom: '20px', overflow: 'hidden' }}>
-                 <div style={{ width: '100%', height: '100%', backgroundColor: '#e0f2fe' }}></div>
+          {loadingDoctors ? (
+            <div style={{ gridColumn: 'span 4', color: 'var(--text-muted)' }}>Loading specialists...</div>
+          ) : doctors.length > 0 ? (
+            doctors.map((doc, index) => (
+             <div key={doc.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+               <div style={{ width: '220px', height: '280px', borderTopLeftRadius: '110px', borderTopRightRadius: '110px', marginBottom: '20px', overflow: 'hidden', position: 'relative', boxShadow: '0 10px 30px rgba(0,0,0,0.08)' }}>
+                 <Image src={`/images/specialist_doc${(index % 4) + 1}.png`} alt={`Dr. ${doc.prenom} ${doc.nom}`} fill style={{ objectFit: 'cover' }} />
                </div>
-               <div style={{ fontWeight: 700, color: 'var(--secondary)', fontSize: '18px' }}>Dr. Medical Expert {i}</div>
-               <div style={{ color: 'var(--primary)', fontSize: '14px', fontWeight: 500 }}>Specialist</div>
+               <div style={{ fontWeight: 700, color: 'var(--secondary)', fontSize: '18px' }}>Dr. {doc.prenom} {doc.nom}</div>
+               <div style={{ color: 'var(--primary)', fontSize: '14px', fontWeight: 500 }}>{doc.specialite}</div>
              </div>
-          ))}
+            ))
+          ) : (
+            <div style={{ gridColumn: 'span 4', color: 'var(--text-muted)' }}>No specialists available at the moment.</div>
+          )}
         </div>
       </section>
 
       {/* Patient Caring */}
-      <section style={{ backgroundColor: '#f0f8ff', padding: '100px 60px', display: 'flex', gap: '80px', justifyContent: 'center' }}>
+      <section id="about" style={{ backgroundColor: '#f0f8ff', padding: '100px 60px', display: 'flex', gap: '80px', justifyContent: 'center' }}>
         <div style={{ flex: 1, maxWidth: '500px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ position: 'relative', height: '500px' }}>
-            <div style={{ position: 'absolute', top: 0, right: 0, width: '350px', height: '300px', backgroundColor: '#cbd5e1', borderRadius: '20px' }}></div>
-            <div style={{ position: 'absolute', bottom: 0, left: 0, width: '300px', height: '250px', backgroundColor: '#94a3b8', borderRadius: '20px', border: '10px solid #f0f8ff' }}></div>
-            <div style={{ position: 'absolute', top: '120px', left: '-30px', backgroundColor: 'white', padding: '16px 24px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+            <div style={{ position: 'absolute', top: 0, right: 0, width: '350px', height: '300px', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 15px 30px rgba(0,0,0,0.1)' }}>
+              <Image src="/images/patient_care1.png" alt="Patient Care" fill style={{ objectFit: 'cover' }} />
+            </div>
+            <div style={{ position: 'absolute', bottom: 0, left: 0, width: '300px', height: '250px', borderRadius: '20px', border: '10px solid #f0f8ff', overflow: 'hidden', boxShadow: '0 15px 30px rgba(0,0,0,0.1)' }}>
+              <Image src="/images/hero_doctor.png" alt="Modern Clinic" fill style={{ objectFit: 'cover' }} />
+            </div>
+            <div style={{ position: 'absolute', top: '120px', left: '-30px', backgroundColor: 'white', padding: '16px 24px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 10 }}>
               <Heart color="var(--primary)" size={24} />
               <div>
                 <div style={{ fontWeight: 700, color: 'var(--secondary)' }}>Free Consultation</div>
@@ -165,6 +194,27 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section style={{ padding: '80px 60px', textAlign: 'center', backgroundColor: 'white' }}>
+        <div style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '14px', marginBottom: '8px' }}>EASY STEPS</div>
+        <h2 style={{ fontSize: '32px', color: 'var(--secondary)', marginBottom: '50px', fontWeight: 700 }}>How It Works</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '30px', maxWidth: '1100px', margin: '0 auto' }}>
+          {[
+            { img: '/images/man_in%20front_of_laptop.jpg', title: 'Find your doctor', desc: 'Search and filter to find your ideal medical expert.' },
+            { img: '/images/nurse.jpg', title: 'Schedule appointment', desc: 'Choose a suitable time slot and confirm your booking.' },
+            { img: '/images/doctors.webp', title: 'Get your treatment', desc: 'Visit the clinic or consult online with ease.' }
+          ].map((item, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+              <div style={{ width: '100%', height: '200px', position: 'relative', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
+                 <Image src={item.img} alt={item.title} fill style={{ objectFit: 'cover' }} />
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--secondary)' }}>{item.title}</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '250px' }}>{item.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -194,32 +244,64 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ & CTA */}
-      <section style={{ padding: '80px 60px', backgroundColor: '#f0f8ff', textAlign: 'center' }}>
-        <h2 style={{ fontSize: '32px', color: 'var(--secondary)', marginBottom: '40px', fontWeight: 700 }}>Frequently Asked Questions</h2>
-        <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'left', marginBottom: '80px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {['Why choose our medical for your family?', 'Why we are different from others?', 'Trusted & experience senior care & love', 'How to get appointment for emergency cases?'].map((q, i) => (
-             <div key={i} style={{ background: 'white', padding: '20px 24px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: '500', boxShadow: '0 4px 10px rgba(0,0,0,0.02)', cursor: 'pointer' }}>
-               <span style={{ color: 'var(--secondary)' }}>{q}</span>
-               <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>+</span>
+      <section style={{ padding: '80px 60px', backgroundColor: '#f0f8ff', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <h2 style={{ fontSize: '32px', color: 'var(--secondary)', marginBottom: '50px', fontWeight: 700, textAlign: 'center' }}>Frequently Asked Questions</h2>
+        
+        <div style={{ display: 'flex', gap: '60px', maxWidth: '1100px', width: '100%', marginBottom: '100px' }}>
+          <div style={{ flex: 1, position: 'relative' }}>
+             <div style={{ width: '100%', height: '400px', position: 'relative', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
+               <Image src="/images/patient_care1.png" alt="Doctor and Patient" fill style={{ objectFit: 'cover' }} />
              </div>
-          ))}
+             <div style={{ position: 'absolute', bottom: '30px', left: '-20px', backgroundColor: 'white', padding: '12px 20px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)' }}>
+               <div style={{ fontSize: '24px' }}>😊</div>
+               <div>
+                 <div style={{ fontWeight: 700, color: 'var(--secondary)' }}>Happy</div>
+                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Patients</div>
+               </div>
+             </div>
+             <div style={{ position: 'absolute', top: '30px', right: '-20px', backgroundColor: 'white', padding: '12px', borderRadius: '50%', boxShadow: '0 10px 30px rgba(0,0,0,0.08)' }}>
+               <Heart color="#ff7a7a" size={24} fill="#ff7a7a" />
+             </div>
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'center' }}>
+            {[
+              { q: 'Why choose our medical for your family?', a: 'We offer comprehensive care with a team of specialized professionals dedicated to your health and well-being.' },
+              { q: 'Why we are different from others?', a: 'Our commitment to advanced technology combined with personalized, compassionate care sets us apart from standard clinics.' },
+              { q: 'Trusted & experience senior care & love', a: 'We have dedicated programs and highly experienced staff specializing in geriatric care to support your elders.' },
+              { q: 'How to get appointment for emergency cases?', a: 'For urgent medical situations, please call our 24/7 hotline directly or visit our emergency department immediately.' }
+            ].map((faq, i) => (
+               <div key={i} onClick={() => setActiveFaq(activeFaq === i ? null : i)} style={{ background: 'white', padding: '20px 24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', fontWeight: '500', boxShadow: '0 4px 10px rgba(0,0,0,0.02)', cursor: 'pointer', transition: 'all 0.3s ease' }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <span style={{ color: 'var(--secondary)' }}>{faq.q}</span>
+                   <span style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '18px' }}>{activeFaq === i ? '-' : '+'}</span>
+                 </div>
+                 {activeFaq === i && (
+                   <div style={{ marginTop: '16px', color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.6, fontWeight: 400 }}>
+                     {faq.a}
+                   </div>
+                 )}
+               </div>
+            ))}
+          </div>
         </div>
 
-        <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '900px', margin: '0 auto', boxShadow: '0 20px 40px rgba(0,0,0,0.05)' }}>
-           <div style={{ flex: 1, textAlign: 'left' }}>
-             <h2 style={{ fontSize: '32px', color: 'var(--secondary)', fontWeight: 800, marginBottom: '8px' }}>
+        <div style={{ backgroundColor: 'white', padding: '40px 60px', borderRadius: '24px', display: 'flex', alignItems: 'center', gap: '40px', maxWidth: '1000px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.05)' }}>
+           <div style={{ flex: '0 0 350px', position: 'relative', height: '250px' }}>
+             <Image src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800" alt="Laptop" fill style={{ objectFit: 'contain' }} />
+           </div>
+           <div style={{ flex: 1, textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+             <h2 style={{ fontSize: '36px', color: 'var(--secondary)', fontWeight: 800, marginBottom: '16px', lineHeight: 1.2 }}>
                Book your<br/>
                <span style={{ color: 'var(--primary)' }}>Appointment</span> Now
              </h2>
-           </div>
-           <div style={{ display: 'flex', gap: '16px' }}>
-              <button className="btn-primary" style={{ padding: '14px 32px' }}>Book Appointment</button>
+             <p style={{ color: 'var(--text-muted)', marginBottom: '24px', maxWidth: '300px' }}>Get the right care you need easily and securely today.</p>
+             <button className="btn-primary" style={{ padding: '14px 32px' }}>Book Appointment</button>
            </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer style={{ backgroundColor: '#1a427f', color: 'white', padding: '60px', marginTop: 'auto' }}>
+      <footer id="contact" style={{ backgroundColor: '#1a427f', color: 'white', padding: '60px', marginTop: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', maxWidth: '1200px', margin: '0 auto' }}>
           <div>
             <Logo light={false} />
@@ -232,18 +314,16 @@ export default function LandingPage() {
           </div>
           <div style={{ display: 'flex', gap: '80px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '14px', opacity: 0.8 }}>
-              <Link href="#">About Us</Link>
-              <Link href="#">Our Pricing</Link>
-              <Link href="#">Our Gallery</Link>
-              <Link href="#">Appointment</Link>
-              <Link href="#">Privacy Policy</Link>
+              <Link href="/about">About Us</Link>
+              <Link href="/services">Services</Link>
+              <Link href="/doctors">Our Doctors</Link>
+              <Link href="/contact">Contact Us</Link>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '14px', opacity: 0.8 }}>
-              <Link href="#">Orthocology</Link>
-              <Link href="#">Neurology</Link>
-              <Link href="#">Dental Care</Link>
-              <Link href="#">Opthalmology</Link>
-              <Link href="#">Cardiology</Link>
+              <Link href="/login">Patient Portal</Link>
+              <Link href="/login">Book Appointment</Link>
+              <Link href="/privacy">Privacy Policy</Link>
+              <Link href="/terms">Terms of Service</Link>
             </div>
           </div>
         </div>

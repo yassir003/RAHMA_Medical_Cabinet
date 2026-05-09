@@ -5,6 +5,15 @@ const nextConfig: NextConfig = {
   // Standalone output for Docker (copies only the minimal needed files)
   output: process.env.DOCKER_BUILD === "1" ? "standalone" : undefined,
 
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+    ],
+  },
+
   turbopack: {
     root: path.resolve(__dirname),
   },

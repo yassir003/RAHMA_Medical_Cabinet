@@ -28,6 +28,7 @@ function parseDateTime(dateObj: Date, timeStr: string) {
 export default function DoctorsPage() {
   const { user } = useAuth();
   const [expandedId, setExpandedId] = useState<number | null>(null); // ← initially no schedule open
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const router = useRouter();
 
   const [doctors, setDoctors] = useState<Medecin[]>([]);
@@ -98,33 +99,118 @@ export default function DoctorsPage() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#fafbfd' }}>
       
       {/* Top Banner */}
-      <div style={{ backgroundColor: 'var(--primary)', color: 'white', textAlign: 'center', padding: '10px 20px', fontSize: '12px', fontWeight: 500 }}>
-        The health and well-being of our patients and their health care team will always be our priority, so we follow the best practices for cleanliness.
+      <div
+        style={{
+          backgroundColor: "var(--primary)",
+          color: "white",
+          textAlign: "center",
+          padding: "10px 20px",
+          fontSize: "12px",
+          fontWeight: 500,
+        }}
+      >
+        The health and well-being of our patients and their health care team
+        will always be our priority.
       </div>
 
       {/* Navbar */}
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 60px', background: 'white' }}>
-        <Logo light={true} />
-        <nav style={{ display: 'flex', gap: '30px', fontSize: '14px', fontWeight: 500, color: 'var(--foreground)' }}>
-          <Link href="/doctors" style={{ color: 'var(--primary)', fontWeight: 600 }}>Find Doctors</Link>
-          <Link href="#">Hospitals</Link>
-          <Link href="#">Medicines</Link>
-          <Link href="#">Surgeries</Link>
-          <Link href="#">Software For Provider</Link>
-          <Link href="#">Facilities</Link>
+      <header
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "20px 60px",
+          background: "rgba(255,255,255,0.9)",
+          backdropFilter: "blur(12px)",
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          borderBottom: "1px solid #f1f5f9",
+        }}
+      >
+        <Link href="/" style={{ textDecoration: "none" }}>
+          <Logo light={true} />
+        </Link>
+
+        <nav
+          style={{
+            display: "flex",
+            gap: "32px",
+            fontSize: "14px",
+            fontWeight: 500,
+          }}
+        >
+          <Link
+            href="/doctors"
+            style={{
+              color: "var(--primary)",
+              fontWeight: 700,
+            }}
+          >
+            Our Doctors
+          </Link>
+          <Link href="/services">Services</Link>
+          <Link href="/about">About Us</Link>
+          <Link href="/login">Patient Portal</Link>
+          <Link href="/contact">Contact Us</Link>
         </nav>
+
         {user ? (
-          <Link href={defaultRouteForRole(user.role)} style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '18px' }}>
+          <Link
+            href={defaultRouteForRole(user.role)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              textDecoration: "none",
+            }}
+          >
+            <div
+              style={{
+                width: "42px",
+                height: "42px",
+                borderRadius: "50%",
+                backgroundColor: "var(--primary)",
+                color: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: "bold",
+              }}
+            >
               {user.email.charAt(0).toUpperCase()}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--secondary)' }}>Mon Espace</span>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{user.role}</span>
+
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  color: "var(--secondary)",
+                }}
+              >
+                Mon Espace
+              </span>
+
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "var(--text-muted)",
+                }}
+              >
+                {user.role}
+              </span>
             </div>
           </Link>
         ) : (
-          <Link href="/login" className="btn-primary" style={{ padding: '10px 24px', borderRadius: '8px' }}>
+          <Link
+            href="/login"
+            className="btn-primary"
+            style={{
+              padding: "12px 24px",
+              borderRadius: "12px",
+            }}
+          >
             Login / Signup
           </Link>
         )}
@@ -203,8 +289,7 @@ export default function DoctorsPage() {
                     <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{doc.telephone || 'Phone not provided'}</span>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px', marginBottom: '12px' }}>
-                    <span style={{ color: 'var(--success)', fontWeight: 700 }}>FREE</span>
-                    <span style={{ color: 'var(--foreground)' }}>Consultation fee at clinic</span>
+                    <span style={{ color: 'var(--foreground)' }}>Consultation at clinic</span>
                   </div>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'var(--success)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 700 }}>
@@ -218,7 +303,7 @@ export default function DoctorsPage() {
                   <div style={{ color: 'var(--success)', fontWeight: 600, fontSize: '14px', marginBottom: '12px' }}>Available Today</div>
                   {/* Updated onClick: pass doctor id */}
                   <button onClick={() => handleBookVisit(doc.id)} className="btn-primary" style={{ width: '100%', padding: '12px', fontSize: '13px', borderRadius: '8px' }}>
-                    Book FREE Clinic Visit
+                    Book Clinic Visit
                   </button>
                 </div>
               </div>
@@ -322,7 +407,7 @@ export default function DoctorsPage() {
         <div style={{ width: '300px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
           <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}>
-            <h3 style={{ fontSize: '15px', color: 'var(--secondary)', fontWeight: 700, marginBottom: '8px' }}>Provide current location to see Dentist near you</h3>
+            <h3 style={{ fontSize: '15px', color: 'var(--secondary)', fontWeight: 700, marginBottom: '8px' }}>Provide current location to see Doctors near you</h3>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>You are seeing results from 30 miles</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
               <span style={{ padding: '6px 16px', border: '1px solid #e2e8f0', borderRadius: '20px', fontSize: '12px', color: 'var(--secondary)', fontWeight: 500, cursor: 'pointer' }}>Andheri West</span>
@@ -338,7 +423,7 @@ export default function DoctorsPage() {
           <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0', backgroundImage: 'linear-gradient(to bottom, #ffffff, #f0f8ff)' }}>
             <div style={{ fontSize: '14px', color: 'var(--secondary)', fontWeight: 500, marginBottom: '8px' }}>This World Oral Health Day,</div>
             <h3 style={{ fontSize: '22px', color: 'var(--secondary)', lineHeight: 1.3, marginBottom: '16px', fontWeight: 800 }}>
-              Get a <span style={{ color: 'var(--primary)' }}>FREE</span> Appointment*<br/>with Top Dentists.
+              Get an Appointment<br/>with Top Doctors.
             </h3>
             <div style={{ backgroundColor: 'var(--primary)', color: 'white', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', display: 'inline-block', fontWeight: 700, marginBottom: '20px' }}>
               LIMITED PERIOD OFFER
@@ -354,45 +439,125 @@ export default function DoctorsPage() {
       <section style={{ padding: '80px 60px', backgroundColor: 'transparent', textAlign: 'center', marginTop: '40px' }}>
         <h2 style={{ fontSize: '32px', color: 'var(--secondary)', marginBottom: '40px', fontWeight: 700 }}>Frequently Asked Questions</h2>
         <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'left', marginBottom: '80px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {['Why choose our medical for your family?', 'Why we are different from others?', 'Trusted & experience senior care & love', 'How to get appointment for emergency cases?'].map((q, i) => (
-             <div key={i} style={{ background: 'white', padding: '20px 24px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: '500', boxShadow: '0 4px 10px rgba(0,0,0,0.02)', cursor: 'pointer' }}>
-               <span style={{ color: 'var(--secondary)' }}>{q}</span>
-               <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>+</span>
+          {[
+            { q: 'Why choose our medical for your family?', a: 'We offer comprehensive care with a team of specialized professionals dedicated to your health and well-being.' },
+            { q: 'Why we are different from others?', a: 'Our commitment to advanced technology combined with personalized, compassionate care sets us apart from standard clinics.' },
+            { q: 'Trusted & experience senior care & love', a: 'We have dedicated programs and highly experienced staff specializing in geriatric care to support your elders.' },
+            { q: 'How to get appointment for emergency cases?', a: 'For urgent medical situations, please call our 24/7 hotline directly or visit our emergency department immediately.' }
+          ].map((faq, i) => (
+             <div key={i} onClick={() => setActiveFaq(activeFaq === i ? null : i)} style={{ background: 'white', padding: '20px 24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', fontWeight: '500', boxShadow: '0 4px 10px rgba(0,0,0,0.02)', cursor: 'pointer', transition: 'all 0.3s ease' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                 <span style={{ color: 'var(--secondary)' }}>{faq.q}</span>
+                 <span style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '18px' }}>{activeFaq === i ? '-' : '+'}</span>
+               </div>
+               {activeFaq === i && (
+                 <div style={{ marginTop: '16px', color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.6, fontWeight: 400 }}>
+                   {faq.a}
+                 </div>
+               )}
              </div>
           ))}
         </div>
       </section>
 
       {/* Footer */}
-      <footer style={{ backgroundColor: '#1a427f', color: 'white', padding: '60px', marginTop: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', maxWidth: '1200px', margin: '0 auto' }}>
+      <footer
+        style={{
+          backgroundColor: "#1a427f",
+          color: "white",
+          padding: "70px 60px 30px",
+          marginTop: "auto",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            maxWidth: "1200px",
+            margin: "0 auto",
+            gap: "60px",
+            flexWrap: "wrap",
+          }}
+        >
           <div>
             <Logo light={false} />
-            <p style={{ marginTop: '20px', maxWidth: '300px', opacity: 0.8, fontSize: '14px', lineHeight: 1.6 }}>
-              Rue Agdal Targa, Marrakech, Maroc<br/>
-              40000<br/>
-              +212 6 88 55 11 44<br/>
-              info@rahmaclinic.com
+
+            <p
+              style={{
+                marginTop: "24px",
+                maxWidth: "320px",
+                opacity: 0.7,
+                fontSize: "14px",
+                lineHeight: 1.8,
+              }}
+            >
+              Professional healthcare services with compassionate doctors and
+              modern medical technologies.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '80px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '14px', opacity: 0.8 }}>
-              <Link href="#">About Us</Link>
-              <Link href="#">Our Pricing</Link>
-              <Link href="#">Our Gallery</Link>
-              <Link href="#">Appointment</Link>
-              <Link href="#">Privacy Policy</Link>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "80px",
+              flexWrap: "wrap",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "16px",
+              }}
+            >
+              <span
+                style={{
+                  fontWeight: 700,
+                  marginBottom: "8px",
+                }}
+              >
+                Company
+              </span>
+
+              <Link href="/about">About Us</Link>
+              <Link href="/services">Services</Link>
+              <Link href="/doctors">Doctors</Link>
+              <Link href="/contact">Contact</Link>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '14px', opacity: 0.8 }}>
-              <Link href="#">Orthocology</Link>
-              <Link href="#">Neurology</Link>
-              <Link href="#">Dental Care</Link>
-              <Link href="#">Opthalmology</Link>
-              <Link href="#">Cardiology</Link>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "16px",
+              }}
+            >
+              <span
+                style={{
+                  fontWeight: 700,
+                  marginBottom: "8px",
+                }}
+              >
+                Support
+              </span>
+
+              <Link href="/login">Patient Portal</Link>
+              <Link href="/privacy">Privacy Policy</Link>
+              <Link href="/terms">Terms of Service</Link>
             </div>
           </div>
         </div>
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '60px', paddingTop: '20px', textAlign: 'center', fontSize: '14px', opacity: 0.6 }}>
+
+        <div
+          style={{
+            borderTop: "1px solid rgba(255,255,255,0.08)",
+            marginTop: "60px",
+            paddingTop: "24px",
+            textAlign: "center",
+            fontSize: "14px",
+            opacity: 0.5,
+          }}
+        >
           Copyright © 2026 RAHMA Medical Cabinet. All Rights Reserved
         </div>
       </footer>
