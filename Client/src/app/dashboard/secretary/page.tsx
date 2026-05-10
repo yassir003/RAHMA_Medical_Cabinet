@@ -185,12 +185,13 @@ export default function SecretaryWorkspacePage() {
           { icon: MessageSquare, label: "Assistant IA",       value: "Chat",
             sub: "Disponible", color: "#f59e0b", bg: "#fffbeb" },
         ].map(({ icon: Icon, label, value, sub, color, bg }, i) => (
-          <div key={i}
+          <button key={i} type="button" disabled={i !== 3}
             onClick={i === 3 ? () => setChatOpen(true) : undefined}
             style={{ background: "white", padding: 22, borderRadius: 16,
               boxShadow: "0 2px 8px rgba(0,0,0,0.04)", border: "1px solid #f1f5f9",
               cursor: i === 3 ? "pointer" : "default",
-              display: "flex", flexDirection: "column", gap: 14 }}>
+              display: "flex", flexDirection: "column", gap: 14, textAlign: "left",
+              outline: "none" }}>
             <div style={{ width: 48, height: 48, borderRadius: 13, background: bg,
               display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Icon size={24} color={color} />
@@ -200,7 +201,7 @@ export default function SecretaryWorkspacePage() {
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginTop: 4 }}>{label}</div>
               <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{sub}</div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 

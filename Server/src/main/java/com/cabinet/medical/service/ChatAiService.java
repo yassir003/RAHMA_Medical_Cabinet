@@ -85,7 +85,8 @@ public class ChatAiService {
 
         for (int iter = 0; iter < MAX_ITERATIONS; iter++) {
             Map<String, Object> body = new LinkedHashMap<>();
-            body.put("model", model);
+            String effectiveModel = model == null ? "gpt-4o-mini" : model.trim();
+            body.put("model",    effectiveModel);
             body.put("messages", messages);
             body.put("tools", buildTools());
 

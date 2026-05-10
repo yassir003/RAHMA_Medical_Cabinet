@@ -511,14 +511,15 @@ export default function AppointmentsPage() {
               if (hasAnnule && dayRdvCount > 0) dotColor = "#dc2626";
 
               return (
-                <div key={day} onClick={() => setSelectedDay(ds)}
+                <button key={day} type="button" onClick={() => setSelectedDay(ds)}
                   style={{
-                    minHeight: 72, borderRadius: 8, padding: "8px 6px",
+                    display: "block", minHeight: 72, borderRadius: 8, padding: "8px 6px",
                     cursor: "pointer", transition: "all 0.1s",
                     background: isSelected ? "#eff6ff" : isToday ? "#f0fdf4" : "white",
                     border: isSelected ? "2px solid #3b82f6" : isToday ? "2px solid #16a34a" : "1px solid #f1f5f9",
                     opacity: isPast && !isToday && !isSelected ? 0.6 : 1,
                     position: "relative",
+                    textAlign: "left",
                   }}>
                   <div style={{ fontSize: 13, fontWeight: isToday ? 800 : 500,
                     color: isToday ? "#16a34a" : "#0f172a", textAlign: "right" }}>
@@ -534,7 +535,7 @@ export default function AppointmentsPage() {
                       </div>
                     </div>
                   )}
-                </div>
+                </button>
               );
             })}
           </div>

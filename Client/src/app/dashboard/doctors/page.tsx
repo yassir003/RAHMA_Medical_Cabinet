@@ -358,10 +358,11 @@ export default function DoctorWorkspacePage() {
                 filteredCons.map((c) => {
                   const validated = !!c.diagnostic;
                   return (
-                    <div key={c.id} style={{
+                    <button key={c.id} type="button" style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: "16px 20px", border: "1px solid #f1f5f9", borderRadius: 12,
+                      width: "100%", padding: "16px 20px", border: "1px solid #f1f5f9", borderRadius: 12,
                       background: "#fafafa", cursor: "pointer", transition: "box-shadow 0.2s",
+                      textAlign: "left", outline: "none",
                     }}
                       onClick={() => c.id && router.push(`/dashboard/doctors/consultations/${c.id}`)}
                       onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)")}
@@ -391,7 +392,7 @@ export default function DoctorWorkspacePage() {
                         </span>
                         <ChevronRight size={16} color="#94a3b8" />
                       </div>
-                    </div>
+                    </button>
                   );
                 })
               )}
@@ -412,10 +413,11 @@ export default function DoctorWorkspacePage() {
                     .filter((c) => c.patientId === p.id)
                     .sort((a, b) => new Date(b.dateVisite).getTime() - new Date(a.dateVisite).getTime())[0];
                   return (
-                    <div key={p.id} style={{
+                    <button key={p.id} type="button" style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: "16px 20px", border: "1px solid #f1f5f9", borderRadius: 12,
+                      width: "100%", padding: "16px 20px", border: "1px solid #f1f5f9", borderRadius: 12,
                       background: "#fafafa", cursor: "pointer", transition: "box-shadow 0.2s",
+                      textAlign: "left", outline: "none",
                     }}
                       onClick={() => router.push(`/dashboard/doctors/patients/${p.id}`)}
                       onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)")}
@@ -441,7 +443,7 @@ export default function DoctorWorkspacePage() {
                         <span style={{ fontSize: 12, color: "#3b82f6", fontWeight: 600 }}>Voir dossier</span>
                         <ChevronRight size={16} color="#94a3b8" />
                       </div>
-                    </div>
+                    </button>
                   );
                 })
               )}
@@ -652,15 +654,15 @@ export default function DoctorWorkspacePage() {
                         boxShadow: "0 8px 24px rgba(0,0,0,0.1)", marginTop: 4, maxHeight: 220, overflowY: "auto",
                       }}>
                         {patients.map((p) => (
-                          <div key={p.id}
+                          <button key={p.id} type="button"
                             onClick={() => { setSelectedPatient(p); setPatDropOpen(false); setPatSearch(""); }}
-                            style={{ padding: "10px 14px", cursor: "pointer", fontSize: 14, borderBottom: "1px solid #f8fafc" }}
+                            style={{ padding: "10px 14px", cursor: "pointer", fontSize: 14, borderBottom: "1px solid #f8fafc", width: "100%", textAlign: "left", background: "white", border: "none", outline: "none" }}
                             onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
                             onMouseLeave={(e) => (e.currentTarget.style.background = "white")}
                           >
                             <span style={{ fontWeight: 600 }}>{p.prenom} {p.nom}</span>
                             <span style={{ color: "#94a3b8", fontSize: 12, marginLeft: 8 }}>{p.cin}</span>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     )}

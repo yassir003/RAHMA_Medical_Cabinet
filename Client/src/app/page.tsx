@@ -270,7 +270,7 @@ export default function LandingPage() {
               { q: 'Trusted & experience senior care & love', a: 'We have dedicated programs and highly experienced staff specializing in geriatric care to support your elders.' },
               { q: 'How to get appointment for emergency cases?', a: 'For urgent medical situations, please call our 24/7 hotline directly or visit our emergency department immediately.' }
             ].map((faq, i) => (
-               <div key={i} onClick={() => setActiveFaq(activeFaq === i ? null : i)} style={{ background: 'white', padding: '20px 24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', fontWeight: '500', boxShadow: '0 4px 10px rgba(0,0,0,0.02)', cursor: 'pointer', transition: 'all 0.3s ease' }}>
+               <button key={i} type="button" onClick={() => setActiveFaq(activeFaq === i ? null : i)} style={{ background: 'white', padding: '20px 24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', fontWeight: '500', boxShadow: '0 4px 10px rgba(0,0,0,0.02)', cursor: 'pointer', transition: 'all 0.3s ease', border: 'none', textAlign: 'left', outline: 'none' }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                    <span style={{ color: 'var(--secondary)' }}>{faq.q}</span>
                    <span style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '18px' }}>{activeFaq === i ? '-' : '+'}</span>
@@ -280,7 +280,7 @@ export default function LandingPage() {
                      {faq.a}
                    </div>
                  )}
-               </div>
+               </button>
             ))}
           </div>
         </div>
