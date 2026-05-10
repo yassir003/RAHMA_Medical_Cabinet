@@ -4,6 +4,7 @@ import com.cabinet.medical.dto.request.ChangePasswordRequest;
 import com.cabinet.medical.dto.request.LoginRequest;
 import com.cabinet.medical.dto.request.RegisterRequest;
 import com.cabinet.medical.dto.response.AuthResponse;
+import com.cabinet.medical.dto.response.PageItem;
 import com.cabinet.medical.entity.Patient;
 import com.cabinet.medical.entity.User;
 import com.cabinet.medical.enums.Role;
@@ -13,11 +14,7 @@ import com.cabinet.medical.messaging.producer.AuditEventProducer;
 import com.cabinet.medical.repository.PatientRepository;
 import com.cabinet.medical.repository.UserRepository;
 import com.cabinet.medical.security.JwtTokenProvider;
-import com.cabinet.medical.dto.response.PageItem;
 import lombok.RequiredArgsConstructor;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Arrays;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -26,6 +23,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -39,7 +40,7 @@ public class AuthService {
     private final AuditEventProducer auditEventProducer;
 
     public AuthResponse login(LoginRequest request) {
-        // Check user existence first so we can return a clear 404 instead of a generic error
+        // Check user existence first so we can return a clear 404 instead of a generic error.
         if (!userRepository.existsByEmail(request.getEmail())) {
             throw new ResourceNotFoundException(
                 "Aucun compte trouvé pour cet email. Veuillez créer un compte d'abord.");
@@ -112,7 +113,6 @@ public class AuthService {
         }
         return pages;
     }
-
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {

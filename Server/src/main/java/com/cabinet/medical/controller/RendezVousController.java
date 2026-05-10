@@ -15,7 +15,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -69,15 +78,17 @@ public class RendezVousController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','SECRETAIRE')")
-    public ResponseEntity<ApiResponse<RendezVousResponse>> update(@PathVariable Long id,
-                                                                  @Valid @RequestBody RendezVousRequest request) {
+    public ResponseEntity<ApiResponse<RendezVousResponse>> update(
+            @PathVariable Long id,
+            @Valid @RequestBody RendezVousRequest request) {
         return ResponseEntity.ok(ApiResponse.success(rendezVousService.update(id, request), "Rendez-vous mis à jour", 200));
     }
 
     @PatchMapping("/{id}/statut")
     @PreAuthorize("hasAnyRole('ADMIN','SECRETAIRE','MEDECIN')")
-    public ResponseEntity<ApiResponse<RendezVousResponse>> changerStatut(@PathVariable Long id,
-                                                                          @RequestParam StatutRdv statut) {
+    public ResponseEntity<ApiResponse<RendezVousResponse>> changerStatut(
+            @PathVariable Long id,
+            @RequestParam StatutRdv statut) {
         return ResponseEntity.ok(ApiResponse.success(rendezVousService.changerStatut(id, statut), "Statut mis à jour", 200));
     }
 
@@ -91,7 +102,8 @@ public class RendezVousController {
     @PatchMapping("/{id}/annuler")
     @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<ApiResponse<RendezVousResponse>> annulerMien(
-            @PathVariable Long id, Authentication auth) {
+            @PathVariable Long id,
+            Authentication auth) {
         return ResponseEntity.ok(ApiResponse.success(
             rendezVousService.annulerMien(id, auth.getName()), "Rendez-vous annulé", 200));
     }

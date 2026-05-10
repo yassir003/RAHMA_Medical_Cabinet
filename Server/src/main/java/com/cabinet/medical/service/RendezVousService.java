@@ -5,6 +5,7 @@ import com.cabinet.medical.dto.response.RendezVousResponse;
 import com.cabinet.medical.entity.Medecin;
 import com.cabinet.medical.entity.Patient;
 import com.cabinet.medical.entity.RendezVous;
+import com.cabinet.medical.entity.User;
 import com.cabinet.medical.enums.StatutRdv;
 import com.cabinet.medical.exception.ConflitHoraireException;
 import com.cabinet.medical.exception.ResourceNotFoundException;
@@ -12,7 +13,6 @@ import com.cabinet.medical.mapper.RendezVousMapper;
 import com.cabinet.medical.messaging.producer.AuditEventProducer;
 import com.cabinet.medical.messaging.producer.DashboardProducer;
 import com.cabinet.medical.messaging.producer.NotificationProducer;
-import com.cabinet.medical.entity.User;
 import com.cabinet.medical.repository.MedecinRepository;
 import com.cabinet.medical.repository.PatientRepository;
 import com.cabinet.medical.repository.RendezVousRepository;
@@ -76,7 +76,7 @@ public class RendezVousService {
 
     @Transactional
     public RendezVousResponse creerRendezVous(RendezVousRequest request) {
-        // Un PATIENT ne peut réserver que pour lui-même
+        // Un PATIENT ne peut réserver que pour lui-même.
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_PATIENT"))) {
@@ -187,7 +187,7 @@ public class RendezVousService {
 
     public List<String> getDisponibilites(Long medecinId, LocalDate date) {
         LocalDateTime debut = date.atTime(9, 0);
-        LocalDateTime fin   = date.atTime(17, 30);
+        LocalDateTime fin = date.atTime(17, 30);
         List<RendezVous> occupes = rendezVousRepository
             .findByMedecinIdAndDateHeureBetweenAndStatutNot(medecinId, debut, fin, StatutRdv.ANNULE);
         Set<LocalDateTime> heuresOccupees = occupes.stream()

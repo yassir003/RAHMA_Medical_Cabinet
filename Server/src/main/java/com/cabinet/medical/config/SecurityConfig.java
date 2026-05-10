@@ -34,7 +34,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors(org.springframework.security.config.Customizer.withDefaults())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(e -> e
@@ -44,6 +44,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/medecins").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/rendez-vous/disponibilites/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/chat").permitAll()
                 .requestMatchers("/api/v1/ordonnances/**").authenticated()
                 .requestMatchers("/ws/**").permitAll()
