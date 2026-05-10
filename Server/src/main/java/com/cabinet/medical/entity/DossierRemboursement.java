@@ -4,7 +4,6 @@ import com.cabinet.medical.enums.StatutDossier;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -19,8 +18,6 @@ public class DossierRemboursement {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private BigDecimal montantTotal;
-    private BigDecimal montantRembourse;
     private LocalDateTime dateCreation;
     private LocalDateTime dateEnvoi;
 

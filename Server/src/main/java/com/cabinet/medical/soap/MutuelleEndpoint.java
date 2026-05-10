@@ -12,7 +12,6 @@ import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
 
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
-import java.time.LocalDate;
 import java.util.Optional;
 
 @Endpoint
@@ -31,11 +30,11 @@ public class MutuelleEndpoint {
         VerifierCouvertureResponse response = new VerifierCouvertureResponse();
         if (opt.isPresent()) {
             Mutuelle m = opt.get();
-            boolean valide = m.getDateFin() == null || m.getDateFin().isAfter(LocalDate.now());
-            response.setCouvert(valide);
+            response.setCouvert(true);
             response.setTypeMutuelle(m.getType() != null ? m.getType().name() : "");
-            response.setTauxRemboursement(m.getTauxRemboursement() != null ? m.getTauxRemboursement() : 0.0);
-            response.setDateExpiration(m.getDateFin() != null ? m.getDateFin().toString() : "");
+            response.setDateAffiliation(m.getDateAffiliation() != null ? m.getDateAffiliation().toString() : "");
+            response.setImmatriculation(m.getImmatriculation() != null ? m.getImmatriculation() : 0L);
+            response.setSomEtabPens(m.getSomEtabPens() != null ? m.getSomEtabPens() : 0L);
         } else {
             response.setCouvert(false);
         }
@@ -55,8 +54,6 @@ public class MutuelleEndpoint {
             response.setDossierId(dossier.getId());
             response.setSuccess(true);
             response.setMessage("Dossier créé avec succès");
-            response.setMontantRembourse(dossier.getMontantRembourse() != null
-                ? dossier.getMontantRembourse().doubleValue() : 0.0);
         } catch (Exception e) {
             response.setSuccess(false);
             response.setMessage(e.getMessage());
@@ -74,15 +71,17 @@ public class MutuelleEndpoint {
     @XmlRootElement(namespace = NS, name = "VerifierCouvertureResponse")
     public static class VerifierCouvertureResponse {
         private boolean couvert; private String typeMutuelle;
-        private double tauxRemboursement; private String dateExpiration;
+        private String dateAffiliation; private long immatriculation; private long somEtabPens;
         @XmlElement public boolean isCouvert() { return couvert; }
         public void setCouvert(boolean couvert) { this.couvert = couvert; }
         @XmlElement public String getTypeMutuelle() { return typeMutuelle; }
         public void setTypeMutuelle(String t) { this.typeMutuelle = t; }
-        @XmlElement public double getTauxRemboursement() { return tauxRemboursement; }
-        public void setTauxRemboursement(double t) { this.tauxRemboursement = t; }
-        @XmlElement public String getDateExpiration() { return dateExpiration; }
-        public void setDateExpiration(String d) { this.dateExpiration = d; }
+        @XmlElement public String getDateAffiliation() { return dateAffiliation; }
+        public void setDateAffiliation(String d) { this.dateAffiliation = d; }
+        @XmlElement public long getImmatriculation() { return immatriculation; }
+        public void setImmatriculation(long i) { this.immatriculation = i; }
+        @XmlElement public long getSomEtabPens() { return somEtabPens; }
+        public void setSomEtabPens(long s) { this.somEtabPens = s; }
     }
 
     @XmlRootElement(namespace = NS, name = "DemandeRemboursementRequest")
@@ -98,14 +97,12 @@ public class MutuelleEndpoint {
 
     @XmlRootElement(namespace = NS, name = "DemandeRemboursementResponse")
     public static class DemandeRemboursementResponse {
-        private Long dossierId; private boolean success; private String message; private double montantRembourse;
+        private Long dossierId; private boolean success; private String message;
         @XmlElement public Long getDossierId() { return dossierId; }
         public void setDossierId(Long d) { this.dossierId = d; }
         @XmlElement public boolean isSuccess() { return success; }
         public void setSuccess(boolean s) { this.success = s; }
         @XmlElement public String getMessage() { return message; }
         public void setMessage(String m) { this.message = m; }
-        @XmlElement public double getMontantRembourse() { return montantRembourse; }
-        public void setMontantRembourse(double m) { this.montantRembourse = m; }
     }
 }

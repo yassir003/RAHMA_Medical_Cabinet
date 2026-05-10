@@ -7,7 +7,6 @@ import com.cabinet.medical.entity.DossierRemboursement;
 import com.cabinet.medical.entity.Mutuelle;
 import com.cabinet.medical.entity.Patient;
 import com.cabinet.medical.enums.StatutDossier;
-import com.cabinet.medical.exception.MutuelleExpireException;
 import com.cabinet.medical.exception.ResourceNotFoundException;
 import com.cabinet.medical.mapper.DossierRemboursementMapper;
 import com.cabinet.medical.messaging.producer.AuditEventProducer;
@@ -23,8 +22,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -60,18 +57,7 @@ public class DossierRemboursementService {
             .orElseThrow(() -> new ResourceNotFoundException("Mutuelle non trouvée"));
         Consultation consultation = consultationRepository.findById(request.getConsultationId())
             .orElseThrow(() -> new ResourceNotFoundException("Consultation non trouvée"));
-        if (mutuelle.getDateFin() != null && mutuelle.getDateFin().isBefore(LocalDate.now())) {
-            throw new MutuelleExpireException("La mutuelle du patient est expirée.");
-        }
-        BigDecimal montantRembourse = BigDecimal.ZERO;
-        if (consultation.getMontantTotal() != null && mutuelle.getTauxRemboursement() != null) {
-            montantRembourse = consultation.getMontantTotal()
-                .multiply(BigDecimal.valueOf(mutuelle.getTauxRemboursement()))
-                .divide(BigDecimal.valueOf(100));
-        }
         DossierRemboursement dossier = DossierRemboursement.builder()
-            .montantTotal(consultation.getMontantTotal())
-            .montantRembourse(montantRembourse)
             .dateCreation(LocalDateTime.now())
             .statut(StatutDossier.EN_ATTENTE)
             .patient(patient)

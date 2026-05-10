@@ -590,9 +590,9 @@ export interface Mutuelle {
   type: TypeMutuelle;
   numeroAffiliation?: string;
   organismeNom?: string;
-  dateDebut?: string;
-  dateFin?: string;
-  tauxRemboursement?: number;
+  dateAffiliation?: string;
+  immatriculation?: number;
+  somEtabPens?: number;
   patientId: number;
   patientNom: string;
   patientPrenom: string;
@@ -602,9 +602,9 @@ export interface MutuelleRequestDto {
   type: TypeMutuelle;
   numeroAffiliation?: string;
   organismeNom?: string;
-  dateDebut?: string;
-  dateFin?: string;
-  tauxRemboursement?: number;
+  dateAffiliation?: string;
+  immatriculation?: number;
+  somEtabPens?: number;
   patientId: number;
 }
 
@@ -641,8 +641,6 @@ export type StatutDossier = "EN_ATTENTE" | "ENVOYE" | "ACCEPTE" | "REJETE" | "RE
 
 export interface DossierRemboursement {
   id: number;
-  montantTotal?: number;
-  montantRembourse?: number;
   dateCreation: string;
   dateEnvoi?: string;
   statut: StatutDossier;
@@ -651,6 +649,9 @@ export interface DossierRemboursement {
   patientPrenom: string;
   mutuelleId: number;
   mutuelleOrganisme?: string;
+  mutuelleDateAffiliation?: string;
+  mutuelleImmatriculation?: number;
+  mutuelleSomEtabPens?: number;
   consultationId: number;
   documentJustificatif?: string;
 }

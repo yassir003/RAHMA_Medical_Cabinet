@@ -23,9 +23,9 @@ public class Mutuelle {
 
     private String numeroAffiliation;
     private String organismeNom;
-    private LocalDate dateDebut;
-    private LocalDate dateFin;
-    private Double tauxRemboursement;
+    private LocalDate dateAffiliation;
+    private Long immatriculation;
+    private Long somEtabPens;
 
     @OneToOne
     @JoinColumn(name = "patient_id")

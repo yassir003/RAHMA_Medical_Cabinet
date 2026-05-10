@@ -326,11 +326,6 @@ export default function SecretaryWorkspacePage() {
                         <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>
                           {d.patientPrenom} {d.patientNom}
                         </span>
-                        {d.montantTotal != null && (
-                          <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
-                            {d.montantTotal.toLocaleString("fr-FR")} MAD
-                          </span>
-                        )}
                       </div>
                       <div style={{ fontSize: 12, color: "#64748b", marginTop: 3, display: "flex", alignItems: "center", gap: 6 }}>
                         <FileText size={12} />

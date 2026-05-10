@@ -23,11 +23,6 @@ function fmtDate(iso?: string) {
   return new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-function fmtMoney(n?: number) {
-  if (n == null) return "—";
-  return `${n.toLocaleString("fr-FR")} MAD`;
-}
-
 const TYPE_LABEL: Record<TypeMutuelle, { label: string; bg: string; color: string }> = {
   CNSS:             { label: "CNSS",             bg: "#eff6ff", color: "#2563eb" },
   CNOPS:            { label: "CNOPS",            bg: "#fdf4ff", color: "#9333ea" },
@@ -149,7 +144,7 @@ function MutuellesTab() {
   // form state
   const emptyForm = { patientId: null as number | null, patientQuery: "", patientLabel: "",
     type: "CNSS" as TypeMutuelle, numeroAffiliation: "", organismeNom: "",
-    dateDebut: "", dateFin: "", tauxRemboursement: "" };
+    dateAffiliation: "", immatriculation: "", somEtabPens: "" };
   const [form, setForm] = useState({ ...emptyForm });
 
   const load = useCallback(async (p: number) => {
@@ -179,9 +174,9 @@ function MutuellesTab() {
       type: m.type,
       numeroAffiliation: m.numeroAffiliation ?? "",
       organismeNom: m.organismeNom ?? "",
-      dateDebut: m.dateDebut ?? "",
-      dateFin: m.dateFin ?? "",
-      tauxRemboursement: m.tauxRemboursement != null ? String(m.tauxRemboursement) : "",
+      dateAffiliation: m.dateAffiliation ?? "",
+      immatriculation: m.immatriculation != null ? String(m.immatriculation) : "",
+      somEtabPens: m.somEtabPens != null ? String(m.somEtabPens) : "",
     });
     setModalError("");
     setShowModal(true);
@@ -191,6 +186,9 @@ function MutuellesTab() {
     if (!form.patientId || !form.type) {
       setModalError("Veuillez sélectionner un patient et un type."); return;
     }
+    if (form.immatriculation && !/^\d{9}$/.test(form.immatriculation)) {
+      setModalError("L'immatriculation doit contenir exactement 9 chiffres."); return;
+    }
     setSaving(true); setModalError("");
     try {
       const dto: MutuelleRequestDto = {
@@ -198,9 +196,9 @@ function MutuellesTab() {
         type: form.type,
         numeroAffiliation: form.numeroAffiliation || undefined,
         organismeNom: form.organismeNom || undefined,
-        dateDebut: form.dateDebut || undefined,
-        dateFin: form.dateFin || undefined,
-        tauxRemboursement: form.tauxRemboursement ? Number(form.tauxRemboursement) : undefined,
+        dateAffiliation: form.dateAffiliation || undefined,
+        immatriculation: form.immatriculation ? Number(form.immatriculation) : undefined,
+        somEtabPens: form.somEtabPens ? Number(form.somEtabPens) : undefined,
       };
       if (editTarget) {
         const updated = await updateMutuelle(editTarget.id, dto);
@@ -285,7 +283,7 @@ function MutuellesTab() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
                 <tr>
-                  {["Patient","Type","Organisme","N° Affiliation","Taux","Validité","Actions"].map((h) => (
+                  {["Patient","Type","Organisme","N° Affiliation","Date affiliation","Immatriculation","S.O.M./Etab./Pens.","Actions"].map((h) => (
                     <th key={h} style={{ textAlign: "left", padding: "10px 14px", fontSize: 12,
                       fontWeight: 700, color: "#94a3b8", borderBottom: "1px solid #f1f5f9" }}>{h}</th>
                   ))}
@@ -304,12 +302,14 @@ function MutuellesTab() {
                     <td style={{ padding: "11px 14px", color: "#475569", fontFamily: "monospace", fontSize: 13 }}>
                       {m.numeroAffiliation ?? "—"}
                     </td>
-                    <td style={{ padding: "11px 14px", color: "#475569" }}>
-                      {m.tauxRemboursement != null ? `${m.tauxRemboursement}%` : "—"}
-                    </td>
                     <td style={{ padding: "11px 14px", color: "#64748b", fontSize: 13 }}>
-                      {m.dateDebut ? fmtDate(m.dateDebut) : "—"}
-                      {m.dateFin ? ` → ${fmtDate(m.dateFin)}` : ""}
+                      {m.dateAffiliation ? fmtDate(m.dateAffiliation) : "—"}
+                    </td>
+                    <td style={{ padding: "11px 14px", color: "#475569", fontFamily: "monospace", fontSize: 13 }}>
+                      {m.immatriculation ?? "—"}
+                    </td>
+                    <td style={{ padding: "11px 14px", color: "#475569", fontFamily: "monospace", fontSize: 13 }}>
+                      {m.somEtabPens ?? "—"}
                     </td>
                     <td style={{ padding: "11px 14px" }}>
                       <div style={{ display: "flex", gap: 6 }}>
@@ -415,24 +415,25 @@ function MutuellesTab() {
                     placeholder="Ex: 12345678" style={inp} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 6 }}>Date début</label>
-                  <input type="date" value={form.dateDebut}
-                    onChange={(e) => setForm((f) => ({ ...f, dateDebut: e.target.value }))} style={inp} />
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 6 }}>Date d&apos;affiliation</label>
+                  <input type="date" value={form.dateAffiliation}
+                    onChange={(e) => setForm((f) => ({ ...f, dateAffiliation: e.target.value }))} style={inp} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 6 }}>Date fin</label>
-                  <input type="date" value={form.dateFin}
-                    onChange={(e) => setForm((f) => ({ ...f, dateFin: e.target.value }))} style={inp} />
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 6 }}>Immatriculation</label>
+                  <input type="number" min={100000000} max={999999999} value={form.immatriculation}
+                    onChange={(e) => setForm((f) => ({ ...f, immatriculation: e.target.value }))}
+                    placeholder="9 chiffres" style={inp} />
                 </div>
               </div>
 
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 6 }}>
-                  Taux de remboursement (%)
+                  S.O.M./Etab./Pens.
                 </label>
-                <input type="number" min={0} max={100} value={form.tauxRemboursement}
-                  onChange={(e) => setForm((f) => ({ ...f, tauxRemboursement: e.target.value }))}
-                  placeholder="Ex: 70" style={inp} />
+                <input type="number" min={0} value={form.somEtabPens}
+                  onChange={(e) => setForm((f) => ({ ...f, somEtabPens: e.target.value }))}
+                  placeholder="Ex: 12345" style={inp} />
               </div>
 
               {modalError && (
@@ -551,7 +552,7 @@ function DossiersTab() {
       if (mutRes.status === "fulfilled") {
         setPatientMutuelle(mutRes.value);
         setCForm((f) => ({ ...f, mutuelleId: mutRes.value.id,
-          mutuelleLabel: `${TYPE_LABEL[mutRes.value.type].label}${mutRes.value.organismeNom ? ` — ${mutRes.value.organismeNom}` : ""}` }));
+          mutuelleLabel: `${TYPE_LABEL[mutRes.value.type].label}${mutRes.value.organismeNom ? ` — ${mutRes.value.organismeNom}` : ""}${mutRes.value.immatriculation ? ` · Imm. ${mutRes.value.immatriculation}` : ""}` }));
       } else {
         setPatientMutuelle(null);
       }
@@ -676,7 +677,7 @@ function DossiersTab() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
                 <tr>
-                  {["Patient","Mutuelle","Consultation","Date création","Montant","Statut","Actions"].map((h) => (
+                  {["Patient","Mutuelle","Consultation","Date création","Statut","Actions"].map((h) => (
                     <th key={h} style={{ textAlign: "left", padding: "10px 14px", fontSize: 12,
                       fontWeight: 700, color: "#94a3b8", borderBottom: "1px solid #f1f5f9" }}>{h}</th>
                   ))}
@@ -691,21 +692,18 @@ function DossiersTab() {
                       {d.patientPrenom} {d.patientNom}
                     </td>
                     <td style={{ padding: "11px 14px", color: "#475569" }}>
-                      {d.mutuelleOrganisme ?? "—"}
+                      <div>{d.mutuelleOrganisme ?? "—"}</div>
+                      <div style={{ color: "#94a3b8", fontSize: 11, marginTop: 3 }}>
+                        {d.mutuelleDateAffiliation ? `Aff. ${fmtDate(d.mutuelleDateAffiliation)} · ` : ""}
+                        {d.mutuelleImmatriculation ? `Imm. ${d.mutuelleImmatriculation}` : "Imm. —"}
+                        {d.mutuelleSomEtabPens != null ? ` · S.O.M. ${d.mutuelleSomEtabPens}` : ""}
+                      </div>
                     </td>
                     <td style={{ padding: "11px 14px", color: "#64748b", fontSize: 13 }}>
                       #CONS-{String(d.consultationId).padStart(4, "0")}
                     </td>
                     <td style={{ padding: "11px 14px", color: "#64748b", fontSize: 13 }}>
                       {fmtDate(d.dateCreation)}
-                    </td>
-                    <td style={{ padding: "11px 14px", fontWeight: 600 }}>
-                      {fmtMoney(d.montantTotal)}
-                      {d.montantRembourse != null && (
-                        <div style={{ fontSize: 11, color: "#16a34a" }}>
-                          ↩ {fmtMoney(d.montantRembourse)}
-                        </div>
-                      )}
                     </td>
                     <td style={{ padding: "11px 14px" }}>
                       <StatutBadge statut={d.statut} />
@@ -808,12 +806,19 @@ function DossiersTab() {
                 </label>
                 {cForm.patientId && !loadingPatientData ? (
                   patientMutuelle ? (
-                    <input value={cForm.mutuelleLabel} readOnly
-                      style={{ ...inp, background: "#f0fdf4", color: "#16a34a", fontWeight: 600 }} />
+                    <div style={{ display: "grid", gap: 8 }}>
+                      <input value={cForm.mutuelleLabel} readOnly
+                        style={{ ...inp, background: "#f0fdf4", color: "#16a34a", fontWeight: 600 }} />
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, fontSize: 12, color: "#475569" }}>
+                        <div><strong>Date affiliation</strong><br />{patientMutuelle.dateAffiliation ? fmtDate(patientMutuelle.dateAffiliation) : "—"}</div>
+                        <div><strong>Immatriculation</strong><br />{patientMutuelle.immatriculation ?? "—"}</div>
+                        <div><strong>S.O.M./Etab./Pens.</strong><br />{patientMutuelle.somEtabPens ?? "—"}</div>
+                      </div>
+                    </div>
                   ) : (
                     <div style={{ padding: "11px 14px", borderRadius: 8, background: "#fffbeb",
                       color: "#d97706", fontSize: 13, border: "1px solid #fde68a" }}>
-                      Ce patient n'a pas d'affiliation mutuelle enregistrée.
+                      Ce patient n&apos;a pas d&apos;affiliation mutuelle enregistrée.
                     </div>
                   )
                 ) : (

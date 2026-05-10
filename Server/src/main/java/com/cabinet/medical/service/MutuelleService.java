@@ -44,9 +44,9 @@ public class MutuelleService {
             .type(request.getType())
             .numeroAffiliation(request.getNumeroAffiliation())
             .organismeNom(request.getOrganismeNom())
-            .dateDebut(request.getDateDebut())
-            .dateFin(request.getDateFin())
-            .tauxRemboursement(request.getTauxRemboursement())
+            .dateAffiliation(request.getDateAffiliation())
+            .immatriculation(request.getImmatriculation())
+            .somEtabPens(request.getSomEtabPens())
             .patient(patient)
             .build();
         return mutuelleMapper.toResponse(mutuelleRepository.save(mutuelle));
@@ -58,9 +58,9 @@ public class MutuelleService {
         m.setType(request.getType());
         m.setNumeroAffiliation(request.getNumeroAffiliation());
         m.setOrganismeNom(request.getOrganismeNom());
-        m.setDateDebut(request.getDateDebut());
-        m.setDateFin(request.getDateFin());
-        m.setTauxRemboursement(request.getTauxRemboursement());
+        m.setDateAffiliation(request.getDateAffiliation());
+        m.setImmatriculation(request.getImmatriculation());
+        m.setSomEtabPens(request.getSomEtabPens());
         return mutuelleMapper.toResponse(mutuelleRepository.save(m));
     }
 

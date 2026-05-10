@@ -13,6 +13,9 @@ public interface DossierRemboursementMapper {
     @Mapping(target = "patientPrenom", source = "patient.prenom")
     @Mapping(target = "mutuelleId", source = "mutuelle.id")
     @Mapping(target = "mutuelleOrganisme", source = "mutuelle.organismeNom")
+    @Mapping(target = "mutuelleDateAffiliation", source = "mutuelle.dateAffiliation")
+    @Mapping(target = "mutuelleImmatriculation", source = "mutuelle.immatriculation")
+    @Mapping(target = "mutuelleSomEtabPens", source = "mutuelle.somEtabPens")
     @Mapping(target = "consultationId", source = "consultation.id")
     DossierRemboursementResponse toResponse(DossierRemboursement dossier);
 }

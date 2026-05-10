@@ -152,7 +152,14 @@ function DossierView() {
                     <td style={{ padding: '16px 0', fontSize: '13px', color: '#64748b' }}>
                       {rep.dateCreation ? new Date(rep.dateCreation).toLocaleDateString('fr-FR') : '-'}
                     </td>
-                    <td style={{ padding: '16px 0', fontSize: '13px', color: '#0f172a' }}>{rep.mutuelleOrganisme || '-'}</td>
+                    <td style={{ padding: '16px 0', fontSize: '13px', color: '#0f172a' }}>
+                      <div>{rep.mutuelleOrganisme || '-'}</div>
+                      <div style={{ color: '#94a3b8', fontSize: '11px', marginTop: '3px' }}>
+                        {rep.mutuelleDateAffiliation ? `Aff. ${new Date(rep.mutuelleDateAffiliation).toLocaleDateString('fr-FR')} · ` : ''}
+                        {rep.mutuelleImmatriculation ? `Imm. ${rep.mutuelleImmatriculation}` : 'Imm. -'}
+                        {rep.mutuelleSomEtabPens != null ? ` · S.O.M. ${rep.mutuelleSomEtabPens}` : ''}
+                      </div>
+                    </td>
                     <td style={{ padding: '16px 0', fontSize: '13px', color: '#64748b' }}>#{rep.consultationId}</td>
                     <td style={{ padding: '16px 0' }}>
                       <span style={{ background: s.bg, color: s.color, padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 700 }}>
@@ -193,7 +200,13 @@ function DossierView() {
               <select value={formData.mutuelleId} onChange={e => setFormData({ ...formData, mutuelleId: Number(e.target.value) })}
                 style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', background: 'white' }}>
                 <option value={0}>Sélectionner une mutuelle</option>
-                {mutuelles.map(m => <option key={m.id} value={m.id}>{m.organismeNom ?? m.type} ({m.type})</option>)}
+                {mutuelles.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.organismeNom ?? m.type} ({m.type})
+                    {m.immatriculation ? ` · Imm. ${m.immatriculation}` : ''}
+                    {m.somEtabPens != null ? ` · S.O.M. ${m.somEtabPens}` : ''}
+                  </option>
+                ))}
               </select>
               <select value={formData.consultationId} onChange={e => setFormData({ ...formData, consultationId: Number(e.target.value) })}
                 style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', background: 'white' }}>
