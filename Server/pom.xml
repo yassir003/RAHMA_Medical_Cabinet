@@ -132,6 +132,19 @@
             <version>2.5.0</version>
         </dependency>
 
+        <!-- iText 7 pour generation PDF -->
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>itext7-core</artifactId>
+            <version>7.2.5</version>
+            <type>pom</type>
+        </dependency>
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>layout</artifactId>
+            <version>7.2.5</version>
+        </dependency>
+
         <!-- WSDL4J pour SOAP -->
         <dependency>
             <groupId>wsdl4j</groupId>

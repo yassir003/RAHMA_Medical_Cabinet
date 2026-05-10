@@ -2,6 +2,12 @@
 // API Service Layer — thin fetch wrapper for the Spring Boot backend
 // ---------------------------------------------------------------------------
 
+import type {
+  OrdonnanceRequest,
+  OrdonnanceResponse,
+  StatutOrdonnance,
+} from "@/types/ordonnance.types";
+
 const BASE_URL = "/api/v1";
 const STORAGE_KEY = "rahma_auth_user";
 
@@ -356,6 +362,12 @@ export interface Consultation {
   medecinPrenom: string;
   medecinSpecialite?: string;
   rendezVousId?: number;
+  ordonnance?: OrdonnanceResponse | {
+    id: number;
+    dureeTraitement: string;
+    statut: StatutOrdonnance;
+    medicaments: Array<{ id: number; nomMedicament: string }>;
+  };
 }
 
 export interface ConsultationRequestDto {
@@ -780,4 +792,72 @@ export async function markNotificationRead(id: number): Promise<Notification> {
 /** PATCH /notifications/lu-tout */
 export async function markAllNotificationsRead(): Promise<void> {
   await request<void>("/notifications/lu-tout", { method: "PATCH" });
+}
+
+// ---------------------------------------------------------------------------
+// Ordonnances endpoints
+// ---------------------------------------------------------------------------
+
+export type { OrdonnanceRequest, OrdonnanceResponse, StatutOrdonnance };
+
+export async function getOrdonnances(
+  page = 0,
+  size = 20,
+  statut?: StatutOrdonnance | "",
+  search = ""
+): Promise<PaginatedResponse<OrdonnanceResponse>> {
+  const q = new URLSearchParams({ page: String(page), size: String(size) });
+  if (statut) q.append("statut", statut);
+  if (search) q.append("search", search);
+  return request<PaginatedResponse<OrdonnanceResponse>>(`/ordonnances?${q}`);
+}
+
+export async function createOrdonnance(data: OrdonnanceRequest): Promise<OrdonnanceResponse> {
+  return request<OrdonnanceResponse>("/ordonnances", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getOrdonnanceById(id: number): Promise<OrdonnanceResponse> {
+  return request<OrdonnanceResponse>(`/ordonnances/${id}`);
+}
+
+export async function getOrdonnancesByPatient(
+  patientId: number,
+  page = 0,
+  size = 20
+): Promise<PaginatedResponse<OrdonnanceResponse>> {
+  const q = new URLSearchParams({ page: String(page), size: String(size) });
+  return request<PaginatedResponse<OrdonnanceResponse>>(`/ordonnances/patient/${patientId}?${q}`);
+}
+
+export async function annulerOrdonnance(id: number): Promise<OrdonnanceResponse> {
+  return request<OrdonnanceResponse>(`/ordonnances/${id}/annuler`, { method: "PATCH" });
+}
+
+export async function downloadOrdonnancePdf(id: number, patientNom = "patient"): Promise<void> {
+  const headers = new Headers();
+  if (typeof window !== "undefined") {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed?.token) headers.set("Authorization", `Bearer ${parsed.token}`);
+    }
+  }
+
+  const res = await fetch(`${BASE_URL}/ordonnances/${id}/pdf`, { headers });
+  if (!res.ok) {
+    throw new ApiError("Impossible de telecharger le PDF de l'ordonnance", res.status);
+  }
+
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `ordonnance-${patientNom}-${id}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
 }

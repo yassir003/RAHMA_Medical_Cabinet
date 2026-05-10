@@ -1,11 +1,12 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, Printer, User, Stethoscope, Calendar, FileText,
   ClipboardList, DollarSign, AlertCircle, CheckCircle, Activity
 } from 'lucide-react';
-import { getConsultationReport, Consultation } from '@/lib/api';
+import { downloadOrdonnancePdf, getConsultationReport, Consultation } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -69,12 +70,22 @@ export default function ConsultationReportPage() {
 
   useEffect(() => {
     if (!user || !validId) return;
-    setIsLoading(true);
-    getConsultationReport(id)
-      .then(data => { setConsultation(data); setError(null); })
-      .catch(err => setError(err.message || 'Impossible de charger la consultation.'))
-      .finally(() => setIsLoading(false));
-  }, [id, user]);
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      setIsLoading(true);
+      getConsultationReport(id)
+        .then(data => {
+          if (!cancelled) {
+            setConsultation(data);
+            setError(null);
+          }
+        })
+        .catch(err => { if (!cancelled) setError(err.message || 'Impossible de charger la consultation.'); })
+        .finally(() => { if (!cancelled) setIsLoading(false); });
+    });
+    return () => { cancelled = true; };
+  }, [id, user, validId]);
 
   if (!user) return null;
 
@@ -108,7 +119,6 @@ export default function ConsultationReportPage() {
 
   const canSeeClinical = role === 'ADMIN' || role === 'MEDECIN';
   const canSeePatientSummary = role === 'PATIENT';
-  const canSeeActes = role !== 'PATIENT' || role === 'PATIENT'; // all roles
   const isPatientRole = role === 'PATIENT';
 
   return (
@@ -168,6 +178,45 @@ export default function ConsultationReportPage() {
         </p>
       </Section>
 
+      {consultation.ordonnance ? (
+        <div style={{ background: '#f0fdf4', borderRadius: '16px', border: '1px solid #bbf7d0', padding: '22px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+            <div>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontSize: '16px', fontWeight: 800, margin: 0 }}>
+                <FileText size={18} /> Ordonnance associee
+                <span style={{ background: '#dcfce7', color: '#15803d', padding: '3px 9px', borderRadius: '999px', fontSize: '11px', fontWeight: 800 }}>
+                  {consultation.ordonnance.statut}
+                </span>
+              </h3>
+              <p style={{ color: '#166534', margin: '8px 0 0', fontSize: '13px' }}>
+                {consultation.ordonnance.medicaments?.length ?? 0} medicament(s) prescrit(s) - Duree : {consultation.ordonnance.dureeTraitement}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Link href={`/dashboard/ordonnances/${consultation.ordonnance.id}`} style={{ color: '#166534', fontSize: '13px', fontWeight: 800, textDecoration: 'none', padding: '8px 10px' }}>
+                Voir l&apos;ordonnance
+              </Link>
+              <button
+                onClick={() => consultation.ordonnance && downloadOrdonnancePdf(consultation.ordonnance.id, consultation.patientNom)}
+                style={{ background: '#16a34a', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '9px', fontWeight: 800, cursor: 'pointer' }}
+              >
+                PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : role === 'MEDECIN' ? (
+        <div style={{ border: '2px dashed #cbd5e1', borderRadius: '16px', padding: '22px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+          <div>
+            <p style={{ fontWeight: 800, color: '#334155', margin: 0 }}>Aucune ordonnance</p>
+            <p style={{ fontSize: '13px', color: '#64748b', margin: '5px 0 0' }}>Aucune ordonnance n&apos;a ete creee pour cette consultation.</p>
+          </div>
+          <Link href={`/dashboard/ordonnances/nouvelle?consultationId=${consultation.id}`} style={{ background: '#2563eb', color: 'white', padding: '10px 14px', borderRadius: '10px', textDecoration: 'none', fontWeight: 800 }}>
+            Creer une ordonnance
+          </Link>
+        </div>
+      ) : null}
+
       {/* Clinical sections — ADMIN / MEDECIN only */}
       {canSeeClinical && (
         <>
@@ -204,7 +253,7 @@ export default function ConsultationReportPage() {
             </div>
           ) : (
             <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0, fontStyle: 'italic' }}>
-              Le médecin n'a pas encore renseigné le résumé patient.
+              Le médecin n&apos;a pas encore renseigné le résumé patient.
             </p>
           )}
         </Section>

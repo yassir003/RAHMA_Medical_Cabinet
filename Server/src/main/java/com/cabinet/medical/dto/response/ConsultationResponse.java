@@ -23,4 +23,5 @@ public class ConsultationResponse {
     private String medecinPrenom;
     private String medecinSpecialite;
     private Long rendezVousId;
+    private OrdonnanceSummaryResponse ordonnance;
 }

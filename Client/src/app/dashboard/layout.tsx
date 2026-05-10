@@ -9,7 +9,7 @@ import { getUnreadCount } from '@/lib/api';
 import {
   LayoutDashboard, CalendarRange, FileText, Users,
   Stethoscope, MessageSquare, Settings, Search, Bell, LogOut, UserPlus,
-  Home, Activity
+  Home
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -31,6 +31,8 @@ function getIconForPage(name: string) {
     case 'Medical Report':
     case 'My Reports':
     case 'Mutuals':
+    case 'Ordonnances':
+    case 'Mes Ordonnances':
     case 'Suivi Médical':
       return FileText;
     case 'Patient':
@@ -104,6 +106,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       path: page.path,
       icon: getIconForPage(page.name)
     }));
+
+  if (user && ['ADMIN', 'MEDECIN', 'SECRETAIRE', 'PATIENT'].includes(role)
+      && !menuItems.some(item => item.path === '/dashboard/ordonnances')) {
+    menuItems.push({
+      name: role === 'PATIENT' ? 'Mes Ordonnances' : 'Ordonnances',
+      path: '/dashboard/ordonnances',
+      icon: FileText,
+    });
+  }
 
   return (
     <ProtectedRoute>

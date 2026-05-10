@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { getMyProfile, getMyConsultations, type Patient, type Consultation } from "@/lib/api";
+import {
+  downloadOrdonnancePdf,
+  getMyProfile,
+  getMyConsultations,
+  getOrdonnances,
+  type Patient,
+  type Consultation,
+  type OrdonnanceResponse,
+} from "@/lib/api";
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Activity, Stethoscope, FileText, User, AlertTriangle } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -106,6 +114,7 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
 export default function PatientMedicalPage() {
   const [profile, setProfile] = useState<Patient | null>(null);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [ordonnances, setOrdonnances] = useState<OrdonnanceResponse[]>([]);
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -114,12 +123,14 @@ export default function PatientMedicalPage() {
   const load = useCallback(async (p = 0) => {
     setLoading(true);
     try {
-      const [prof, cons] = await Promise.all([
+      const [prof, cons, ords] = await Promise.all([
         getMyProfile(),
         getMyConsultations(p, PAGE_SIZE),
+        getOrdonnances(0, 20),
       ]);
       setProfile(prof);
       setConsultations(cons.content ?? []);
+      setOrdonnances(ords.content ?? []);
       setTotal(cons.totalElements ?? 0);
     } catch {
       // ignore
@@ -211,6 +222,44 @@ export default function PatientMedicalPage() {
               </div>
             )}
           </>
+        )}
+      </div>
+
+      <div style={{ background: "white", borderRadius: 16, padding: 28, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", marginTop: 28 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#0f172a" }}>Mes ordonnances</h3>
+          <span style={{ fontSize: 13, color: "#64748b" }}>{ordonnances.length} ordonnance{ordonnances.length > 1 ? "s" : ""}</span>
+        </div>
+
+        {ordonnances.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "34px 0", color: "#94a3b8" }}>
+            <FileText size={42} style={{ marginBottom: 10, opacity: 0.35 }} />
+            <p style={{ margin: 0, fontSize: 14 }}>Aucune ordonnance pour le moment</p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: 10 }}>
+            {ordonnances.map((o) => (
+              <div key={o.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid #f1f5f9", borderRadius: 12, padding: "14px 16px" }}>
+                <div>
+                  <div style={{ fontWeight: 800, color: "#0f172a" }}>ORD-{o.id}</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 3 }}>
+                    Dr. {o.medecin?.prenom} {o.medecin?.nom} - {o.medicaments?.length ?? 0} medicament(s)
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ padding: "4px 10px", borderRadius: 999, background: o.statut === "ACTIVE" ? "#dcfce7" : o.statut === "ANNULEE" ? "#fee2e2" : "#fef3c7", color: o.statut === "ACTIVE" ? "#15803d" : o.statut === "ANNULEE" ? "#b91c1c" : "#b45309", fontSize: 12, fontWeight: 800 }}>
+                    {o.statut}
+                  </span>
+                  <button
+                    onClick={() => downloadOrdonnancePdf(o.id, profile?.nom ?? "patient")}
+                    style={{ border: "none", background: "#eff6ff", color: "#2563eb", borderRadius: 8, padding: "8px 10px", fontWeight: 800, cursor: "pointer" }}
+                  >
+                    PDF
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

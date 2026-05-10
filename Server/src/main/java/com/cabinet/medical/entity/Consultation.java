@@ -50,4 +50,10 @@ public class Consultation {
     @JoinColumn(name = "rendez_vous_id")
     @JsonIgnore
     private RendezVous rendezVous;
+
+    @OneToOne(mappedBy = "consultation", cascade = CascadeType.ALL)
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Ordonnance ordonnance;
 }

@@ -73,6 +73,7 @@ public class AuthService {
             case "ADMIN":
                 pages.addAll(Arrays.asList(
                     new PageItem("Medical Report", "/dashboard/reports"),
+                    new PageItem("Ordonnances", "/dashboard/ordonnances"),
                     new PageItem("Patient", "/dashboard/patients"),
                     new PageItem("Doctors list", "/dashboard/doctors/list"),
                     new PageItem("Secretary list", "/dashboard/secretary/list"),
@@ -84,6 +85,7 @@ public class AuthService {
                     new PageItem("Workspace", "/dashboard/doctors"),
                     new PageItem("Appointment", "/dashboard/appointments"),
                     new PageItem("Medical Report", "/dashboard/reports"),
+                    new PageItem("Ordonnances", "/dashboard/ordonnances"),
                     new PageItem("Patient", "/dashboard/doctors/patients")
                 ));
                 break;
@@ -92,6 +94,7 @@ public class AuthService {
                     new PageItem("Workspace", "/dashboard/secretary"),
                     new PageItem("Appointment", "/dashboard/appointments"),
                     new PageItem("Patient", "/dashboard/patients"),
+                    new PageItem("Ordonnances", "/dashboard/ordonnances"),
                     new PageItem("Mutuals", "/dashboard/mutuals")
                 ));
                 break;
@@ -100,6 +103,7 @@ public class AuthService {
                     new PageItem("Accueil", "/dashboard/patient"),
                     new PageItem("Rendez-vous", "/dashboard/patient/appointments"),
                     new PageItem("Suivi Médical", "/dashboard/patient/medical"),
+                    new PageItem("Mes Ordonnances", "/dashboard/ordonnances"),
                     new PageItem("Notifications", "/dashboard/patient/notifications")
                 ));
                 break;

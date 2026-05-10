@@ -5,7 +5,7 @@ import com.cabinet.medical.entity.Consultation;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = OrdonnanceMapper.class)
 public interface ConsultationMapper {
 
     @Mapping(target = "patientId", source = "patient.id")
