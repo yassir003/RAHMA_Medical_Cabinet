@@ -315,20 +315,23 @@ export default function DoctorsPage() {
                     <button style={{ border: '1px solid #e2e8f0', background: 'white', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><ChevronLeft size={16}/></button>
                     <div style={{ display: 'flex', gap: '40px' }}>
                       {dates.map((d, i) => (
-                        <div 
+                        <button 
                           key={i} 
+                          type="button"
                           onClick={() => setSelectedDateIndex(i)}
                           style={{ 
                             textAlign: 'center', 
                             borderBottom: selectedDateIndex === i ? '2px solid var(--primary)' : 'none', 
                             paddingBottom: '8px', 
                             color: selectedDateIndex === i ? 'var(--primary)' : 'var(--text-muted)',
-                            cursor: 'pointer'
+                            border: 'none',
+                            outline: 'none',
+                            background: 'transparent'
                           }}
                         >
                           <div style={{ fontWeight: 600, fontSize: '15px', color: selectedDateIndex === i ? 'var(--primary)' : 'var(--secondary)' }}>{dateLabels[i]}</div>
                           <div style={{ fontSize: '12px', fontWeight: 500 }}>Slots Available</div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                     <button style={{ border: '1px solid #e2e8f0', background: 'white', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><ChevronRight size={16}/></button>
@@ -339,7 +342,7 @@ export default function DoctorsPage() {
                       <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--secondary)', width: '80px' }}>Morning</span>
                       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         {['09:00 AM', '10:00 AM', '11:00 AM', '11:30 AM'].map(time => (
-                          <span key={time} onClick={() => handleTimeSlotClick(doc.id, dates[selectedDateIndex], time)} style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', color: 'var(--primary)', fontWeight: 500, cursor: 'pointer', background: 'white' }}>{time}</span>
+                          <button key={time} type="button" onClick={() => handleTimeSlotClick(doc.id, dates[selectedDateIndex], time)} style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', color: 'var(--primary)', fontWeight: 500, cursor: 'pointer', background: 'white', outline: 'none' }}>{time}</button>
                         ))}
                       </div>
                     </div>
@@ -347,7 +350,7 @@ export default function DoctorsPage() {
                       <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--secondary)', width: '80px' }}>Afternoon</span>
                       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         {['12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM'].map(time => (
-                          <span key={time} onClick={() => handleTimeSlotClick(doc.id, dates[selectedDateIndex], time)} style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', color: 'var(--primary)', fontWeight: 500, cursor: 'pointer', background: 'white' }}>{time}</span>
+                          <button key={time} type="button" onClick={() => handleTimeSlotClick(doc.id, dates[selectedDateIndex], time)} style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', color: 'var(--primary)', fontWeight: 500, cursor: 'pointer', background: 'white', outline: 'none' }}>{time}</button>
                         ))}
                       </div>
                     </div>
@@ -355,7 +358,7 @@ export default function DoctorsPage() {
                       <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--secondary)', width: '80px' }}>Evening</span>
                       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         {['06:00 PM', '06:30 PM', '07:00 PM'].map(time => (
-                          <span key={time} onClick={() => handleTimeSlotClick(doc.id, dates[selectedDateIndex], time)} style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', color: 'var(--primary)', fontWeight: 500, cursor: 'pointer', background: 'white' }}>{time}</span>
+                          <button key={time} type="button" onClick={() => handleTimeSlotClick(doc.id, dates[selectedDateIndex], time)} style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', color: 'var(--primary)', fontWeight: 500, cursor: 'pointer', background: 'white', outline: 'none' }}>{time}</button>
                         ))}
                       </div>
                     </div>
@@ -376,8 +379,9 @@ export default function DoctorsPage() {
                 &lt;
               </button>
               {Array.from({ length: totalPages }, (_, i) => (
-                <span 
+                <button 
                   key={i} 
+                  type="button"
                   onClick={() => setPage(i)}
                   style={{ 
                     padding: '8px 12px', 
@@ -386,11 +390,11 @@ export default function DoctorsPage() {
                     borderRadius: '4px', 
                     border: page === i ? 'none' : '1px solid #e2e8f0', 
                     fontWeight: page === i ? 600 : 400,
-                    cursor: 'pointer'
+                    outline: 'none'
                   }}
                 >
                   {i + 1}
-                </span>
+                </button>
               ))}
               <button 
                 disabled={page >= totalPages - 1} 
@@ -445,7 +449,7 @@ export default function DoctorsPage() {
             { q: 'Trusted & experience senior care & love', a: 'We have dedicated programs and highly experienced staff specializing in geriatric care to support your elders.' },
             { q: 'How to get appointment for emergency cases?', a: 'For urgent medical situations, please call our 24/7 hotline directly or visit our emergency department immediately.' }
           ].map((faq, i) => (
-             <div key={i} onClick={() => setActiveFaq(activeFaq === i ? null : i)} style={{ background: 'white', padding: '20px 24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', fontWeight: '500', boxShadow: '0 4px 10px rgba(0,0,0,0.02)', cursor: 'pointer', transition: 'all 0.3s ease' }}>
+             <button key={i} type="button" onClick={() => setActiveFaq(activeFaq === i ? null : i)} style={{ background: 'white', padding: '20px 24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', fontWeight: '500', boxShadow: '0 4px 10px rgba(0,0,0,0.02)', transition: 'all 0.3s ease', border: 'none', textAlign: 'left', outline: 'none' }}>
                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                  <span style={{ color: 'var(--secondary)' }}>{faq.q}</span>
                  <span style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '18px' }}>{activeFaq === i ? '-' : '+'}</span>
@@ -455,7 +459,7 @@ export default function DoctorsPage() {
                    {faq.a}
                  </div>
                )}
-             </div>
+             </button>
           ))}
         </div>
       </section>

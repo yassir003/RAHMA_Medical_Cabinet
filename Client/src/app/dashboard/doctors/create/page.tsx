@@ -57,7 +57,7 @@ export default function CreateDoctorPage() {
     if (!form.prenom.trim())    errs.prenom    = "Le prénom est requis.";
     if (!form.specialite)       errs.specialite = "La spécialité est requise.";
     if (!form.email.trim())     errs.email     = "L'email est requis.";
-    else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = "Email invalide.";
+    else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(form.email)) errs.email = "Email invalide.";
     if (!form.password)         errs.password  = "Le mot de passe est requis.";
     else if (form.password.length < 8) errs.password = "Minimum 8 caractères.";
     if (form.password !== form.passwordConfirm) errs.passwordConfirm = "Les mots de passe ne correspondent pas.";
