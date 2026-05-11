@@ -123,7 +123,7 @@ public class PatientController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SECRETAIRE')")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         patientService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Patient supprimé", 200));

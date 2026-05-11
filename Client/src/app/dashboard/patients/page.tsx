@@ -61,6 +61,15 @@ const inp: React.CSSProperties = {
 
 const BLOOD_GROUPS = ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
+// ─── Validation helper ──────────────────────────────────────────────────────
+
+function validatePatientData(data: PatientRequestDto): string | null {
+  if (!data.nom.trim() || !data.prenom.trim() || !data.cin.trim()) {
+    return "Nom, prénom et CIN sont requis.";
+  }
+  return null;
+}
+
 // ─── Patient form ─────────────────────────────────────────────────────────────
 
 function PatientModal({
@@ -260,10 +269,13 @@ export default function PatientsPage() {
   useEffect(() => { load(page, search); }, [page, load]);  // page changes reload immediately
 
   async function handleCreate(data: PatientRequestDto) {
-    if (!data.nom.trim() || !data.prenom.trim() || !data.cin.trim()) {
-      setModalError("Nom, prénom et CIN sont requis."); return;
+    const error = validatePatientData(data);
+    if (error) {
+      setModalError(error);
+      return;
     }
-    setSaving(true); setModalError("");
+    setSaving(true);
+    setModalError("");
     try {
       const created = await createPatient(data);
       setPatients((prev) => [created, ...prev]);
@@ -271,22 +283,29 @@ export default function PatientsPage() {
       setShowCreate(false);
     } catch (e) {
       setModalError(e instanceof ApiError ? e.message : "Erreur lors de la création.");
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleEdit(data: PatientRequestDto) {
     if (!editTarget) return;
-    if (!data.nom.trim() || !data.prenom.trim() || !data.cin.trim()) {
-      setModalError("Nom, prénom et CIN sont requis."); return;
+    const error = validatePatientData(data);
+    if (error) {
+      setModalError(error);
+      return;
     }
-    setSaving(true); setModalError("");
+    setSaving(true);
+    setModalError("");
     try {
       const updated = await updatePatient(editTarget.id, data);
       setPatients((prev) => prev.map((p) => p.id === updated.id ? updated : p));
       setEditTarget(null);
     } catch (e) {
       setModalError(e instanceof ApiError ? e.message : "Erreur lors de la modification.");
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleDelete() {
@@ -300,11 +319,10 @@ export default function PatientsPage() {
     } catch { /* ignore */ } finally { setDeleting(false); }
   }
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+  // ─── Rendering functions ───────────────────────────────────────────────────
 
-      {/* Header */}
+  function renderHeader() {
+    return (
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
@@ -321,8 +339,11 @@ export default function PatientsPage() {
           <Plus size={16} /> Nouveau patient
         </button>
       </div>
+    );
+  }
 
-      {/* Search bar */}
+  function renderSearchBar() {
+    return (
       <div style={{ background: "white", borderRadius: 12, padding: "12px 18px",
         border: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 12,
         boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
@@ -337,209 +358,279 @@ export default function PatientsPage() {
           </button>
         )}
       </div>
+    );
+  }
 
-      {/* Table */}
-      <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.04)", overflow: "hidden" }}>
-        {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center",
-            padding: "60px 0", color: "#94a3b8" }}>
-            <Loader2 size={28} style={{ animation: "spin 1s linear infinite" }} />
-          </div>
-        ) : patients.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <User size={40} color="#cbd5e1" style={{ margin: "0 auto 12px" }} />
-            <p style={{ color: "#94a3b8", fontSize: 14 }}>
-              {search ? `Aucun résultat pour « ${search} »` : "Aucun patient enregistré."}
-            </p>
-          </div>
-        ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-            <thead>
-              <tr style={{ background: "#f8fafc" }}>
-                {["#","Patient","CIN","Âge / Naissance","Téléphone","Groupe","Actions"].map((h) => (
-                  <th key={h} style={{ textAlign: "left", padding: "12px 16px", fontSize: 12,
-                    fontWeight: 700, color: "#94a3b8", borderBottom: "1px solid #f1f5f9" }}>{h}</th>
-                ))}
+  function renderTable() {
+    if (loading) {
+      return (
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center",
+          padding: "60px 0", color: "#94a3b8" }}>
+          <Loader2 size={28} style={{ animation: "spin 1s linear infinite" }} />
+        </div>
+      );
+    }
+
+    if (patients.length === 0) {
+      return (
+        <div style={{ textAlign: "center", padding: "60px 0" }}>
+          <User size={40} color="#cbd5e1" style={{ margin: "0 auto 12px" }} />
+          <p style={{ color: "#94a3b8", fontSize: 14 }}>
+            {search ? `Aucun résultat pour « ${search} »` : "Aucun patient enregistré."}
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+        <thead>
+          <tr style={{ background: "#f8fafc" }}>
+            {["#","Patient","CIN","Âge / Naissance","Téléphone","Groupe","Actions"].map((h) => (
+              <th key={h} style={{ textAlign: "left", padding: "12px 16px", fontSize: 12,
+                fontWeight: 700, color: "#94a3b8", borderBottom: "1px solid #f1f5f9" }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {patients.map((p) => {
+            const age = calcAge(p.dateNaissance);
+            return (
+              <tr key={p.id}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "#fafbff")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
+                <td style={{ padding: "13px 16px", color: "#94a3b8", fontSize: 12, fontFamily: "monospace" }}>
+                  #{String(p.id).padStart(4, "0")}
+                </td>
+                <td style={{ padding: "13px 16px" }}>
+                  <div style={{ fontWeight: 700, color: "#0f172a" }}>{p.prenom} {p.nom}</div>
+                  {p.email && (
+                    <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{p.email}</div>
+                  )}
+                </td>
+                <td style={{ padding: "13px 16px", color: "#475569", fontFamily: "monospace", fontSize: 13 }}>
+                  {p.cin}
+                </td>
+                <td style={{ padding: "13px 16px", color: "#475569" }}>
+                  {age != null ? (
+                    <><strong style={{ color: "#0f172a" }}>{age} ans</strong><br />
+                      <span style={{ fontSize: 12, color: "#94a3b8" }}>{fmtDate(p.dateNaissance)}</span></>
+                  ) : "—"}
+                </td>
+                <td style={{ padding: "13px 16px", color: "#475569" }}>
+                  {p.telephone ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <Phone size={12} color="#94a3b8" /> {p.telephone}
+                    </div>
+                  ) : "—"}
+                </td>
+                <td style={{ padding: "13px 16px" }}>
+                  <BloodBadge type={p.groupeSanguin} />
+                </td>
+                <td style={{ padding: "13px 16px" }}>
+                  <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+                    <button onClick={() => setViewTarget(p)} title="Voir le dossier"
+                      style={{ padding: "5px 8px", borderRadius: 6, border: "1px solid #e2e8f0",
+                        background: "white", color: "#64748b", cursor: "pointer" }}>
+                      <Eye size={14} />
+                    </button>
+                    <button onClick={() => router.push(`/dashboard/doctors/patients/${p.id}`)}
+                      title="Dossier médical complet"
+                      style={{ padding: "5px 8px", borderRadius: 6, border: "none",
+                        background: "#eff6ff", color: "#2563eb", cursor: "pointer" }}>
+                      <ExternalLink size={14} />
+                    </button>
+                    <button onClick={() => { setEditTarget(p); setModalError(""); }}
+                      title="Modifier"
+                      style={{ padding: "5px 8px", borderRadius: 6, border: "none",
+                        background: "#f8fafc", color: "#475569", cursor: "pointer" }}>
+                      <Edit2 size={14} />
+                    </button>
+                    <button onClick={() => setDeleteTarget(p)} title="Supprimer"
+                      style={{ padding: "5px 8px", borderRadius: 6, border: "none",
+                        background: "#fef2f2", color: "#dc2626", cursor: "pointer" }}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {patients.map((p) => {
-                const age = calcAge(p.dateNaissance);
-                return (
-                  <tr key={p.id}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#fafbff")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
-                    <td style={{ padding: "13px 16px", color: "#94a3b8", fontSize: 12, fontFamily: "monospace" }}>
-                      #{String(p.id).padStart(4, "0")}
-                    </td>
-                    <td style={{ padding: "13px 16px" }}>
-                      <div style={{ fontWeight: 700, color: "#0f172a" }}>{p.prenom} {p.nom}</div>
-                      {p.email && (
-                        <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{p.email}</div>
-                      )}
-                    </td>
-                    <td style={{ padding: "13px 16px", color: "#475569", fontFamily: "monospace", fontSize: 13 }}>
-                      {p.cin}
-                    </td>
-                    <td style={{ padding: "13px 16px", color: "#475569" }}>
-                      {age != null ? (
-                        <><strong style={{ color: "#0f172a" }}>{age} ans</strong><br />
-                          <span style={{ fontSize: 12, color: "#94a3b8" }}>{fmtDate(p.dateNaissance)}</span></>
-                      ) : "—"}
-                    </td>
-                    <td style={{ padding: "13px 16px", color: "#475569" }}>
-                      {p.telephone ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                          <Phone size={12} color="#94a3b8" /> {p.telephone}
-                        </div>
-                      ) : "—"}
-                    </td>
-                    <td style={{ padding: "13px 16px" }}>
-                      <BloodBadge type={p.groupeSanguin} />
-                    </td>
-                    <td style={{ padding: "13px 16px" }}>
-                      <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
-                        <button onClick={() => setViewTarget(p)} title="Voir le dossier"
-                          style={{ padding: "5px 8px", borderRadius: 6, border: "1px solid #e2e8f0",
-                            background: "white", color: "#64748b", cursor: "pointer" }}>
-                          <Eye size={14} />
-                        </button>
-                        <button onClick={() => router.push(`/dashboard/doctors/patients/${p.id}`)}
-                          title="Dossier médical complet"
-                          style={{ padding: "5px 8px", borderRadius: 6, border: "none",
-                            background: "#eff6ff", color: "#2563eb", cursor: "pointer" }}>
-                          <ExternalLink size={14} />
-                        </button>
-                        <button onClick={() => { setEditTarget(p); setModalError(""); }}
-                          title="Modifier"
-                          style={{ padding: "5px 8px", borderRadius: 6, border: "none",
-                            background: "#f8fafc", color: "#475569", cursor: "pointer" }}>
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={() => setDeleteTarget(p)} title="Supprimer"
-                          style={{ padding: "5px 8px", borderRadius: 6, border: "none",
-                            background: "#fef2f2", color: "#dc2626", cursor: "pointer" }}>
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+            );
+          })}
+        </tbody>
+      </table>
+    );
+  }
 
-        {/* Pagination */}
-        {!loading && totalPages > 1 && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
-            padding: "14px 20px", borderTop: "1px solid #f1f5f9" }}>
-            <span style={{ fontSize: 13, color: "#64748b" }}>
-              Page {page + 1} sur {totalPages} — {totalElements} patients
-            </span>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px",
-                  borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 13, fontWeight: 600,
-                  background: page === 0 ? "#f8fafc" : "white",
-                  color: page === 0 ? "#cbd5e1" : "#475569",
-                  cursor: page === 0 ? "default" : "pointer" }}>
-                <ChevronLeft size={15} /> Précédent
-              </button>
-              <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px",
-                  borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 13, fontWeight: 600,
-                  background: page >= totalPages - 1 ? "#f8fafc" : "white",
-                  color: page >= totalPages - 1 ? "#cbd5e1" : "#475569",
-                  cursor: page >= totalPages - 1 ? "default" : "pointer" }}>
-                Suivant <ChevronRight size={15} />
-              </button>
-            </div>
-          </div>
-        )}
+  function renderPagination() {
+    if (loading || totalPages <= 1) return null;
+
+    return (
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+        padding: "14px 20px", borderTop: "1px solid #f1f5f9" }}>
+        <span style={{ fontSize: 13, color: "#64748b" }}>
+          Page {page + 1} sur {totalPages} — {totalElements} patients
+        </span>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px",
+              borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 13, fontWeight: 600,
+              background: page === 0 ? "#f8fafc" : "white",
+              color: page === 0 ? "#cbd5e1" : "#475569",
+              cursor: page === 0 ? "default" : "pointer" }}>
+            <ChevronLeft size={15} /> Précédent
+          </button>
+          <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px",
+              borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 13, fontWeight: 600,
+              background: page >= totalPages - 1 ? "#f8fafc" : "white",
+              color: page >= totalPages - 1 ? "#cbd5e1" : "#475569",
+              cursor: page >= totalPages - 1 ? "default" : "pointer" }}>
+            Suivant <ChevronRight size={15} />
+          </button>
+        </div>
       </div>
+    );
+  }
 
-      {/* ── Quick view modal ── */}
-      {viewTarget && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
-          zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ background: "white", borderRadius: 16, padding: 32, width: "100%",
-            maxWidth: 500, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 12, background: "#eff6ff",
-                  display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <User size={22} color="#2563eb" />
+  function renderViewModal() {
+    if (!viewTarget) return null;
+
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+        zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ background: "white", borderRadius: 16, padding: 32, width: "100%",
+          maxWidth: 500, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: "#eff6ff",
+                display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <User size={22} color="#2563eb" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a" }}>
+                  {viewTarget.prenom} {viewTarget.nom}
+                </h3>
+                <p style={{ fontSize: 13, color: "#64748b" }}>CIN: {viewTarget.cin}</p>
+              </div>
+            </div>
+            <button onClick={() => setViewTarget(null)}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}>
+              <X size={20} />
+            </button>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+            {[
+              { icon: <Calendar size={14} />, label: "Date de naissance", value: fmtDate(viewTarget.dateNaissance) },
+              { icon: <Droplet size={14} />, label: "Groupe sanguin", value: viewTarget.groupeSanguin || "—" },
+              { icon: <Phone size={14} />, label: "Téléphone", value: viewTarget.telephone || "—" },
+              { icon: <MapPin size={14} />, label: "Adresse", value: viewTarget.adresse || "—" },
+            ].map((f) => (
+              <div key={f.label}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5,
+                  fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>
+                  {f.icon} {f.label}
                 </div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{f.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {(viewTarget.allergies || viewTarget.antecedents) && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10,
+              padding: "14px 16px", background: "#f8fafc", borderRadius: 10, marginBottom: 20 }}>
+              {viewTarget.allergies && (
                 <div>
-                  <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a" }}>
-                    {viewTarget.prenom} {viewTarget.nom}
-                  </h3>
-                  <p style={{ fontSize: 13, color: "#64748b" }}>CIN: {viewTarget.cin}</p>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#f59e0b", marginBottom: 3, letterSpacing: "0.05em" }}>
+                    ALLERGIES
+                  </div>
+                  <div style={{ fontSize: 13, color: "#0f172a" }}>{viewTarget.allergies}</div>
                 </div>
-              </div>
-              <button onClick={() => setViewTarget(null)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
-              {[
-                { icon: <Calendar size={14} />, label: "Date de naissance", value: fmtDate(viewTarget.dateNaissance) },
-                { icon: <Droplet size={14} />, label: "Groupe sanguin", value: viewTarget.groupeSanguin || "—" },
-                { icon: <Phone size={14} />, label: "Téléphone", value: viewTarget.telephone || "—" },
-                { icon: <MapPin size={14} />, label: "Adresse", value: viewTarget.adresse || "—" },
-              ].map((f) => (
-                <div key={f.label}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 5,
-                    fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>
-                    {f.icon} {f.label}
+              )}
+              {viewTarget.antecedents && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#8b5cf6", marginBottom: 3, letterSpacing: "0.05em" }}>
+                    ANTÉCÉDENTS
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{f.value}</div>
+                  <div style={{ fontSize: 13, color: "#0f172a" }}>{viewTarget.antecedents}</div>
                 </div>
-              ))}
+              )}
             </div>
+          )}
 
-            {(viewTarget.allergies || viewTarget.antecedents) && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10,
-                padding: "14px 16px", background: "#f8fafc", borderRadius: 10, marginBottom: 20 }}>
-                {viewTarget.allergies && (
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#f59e0b", marginBottom: 3, letterSpacing: "0.05em" }}>
-                      ALLERGIES
-                    </div>
-                    <div style={{ fontSize: 13, color: "#0f172a" }}>{viewTarget.allergies}</div>
-                  </div>
-                )}
-                {viewTarget.antecedents && (
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#8b5cf6", marginBottom: 3, letterSpacing: "0.05em" }}>
-                      ANTÉCÉDENTS
-                    </div>
-                    <div style={{ fontSize: 13, color: "#0f172a" }}>{viewTarget.antecedents}</div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-              <button onClick={() => setViewTarget(null)}
-                style={{ padding: "9px 18px", borderRadius: 8, border: "1px solid #e2e8f0",
-                  background: "white", color: "#475569", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
-                Fermer
-              </button>
-              <button onClick={() => { setViewTarget(null); router.push(`/dashboard/doctors/patients/${viewTarget.id}`); }}
-                style={{ padding: "9px 18px", borderRadius: 8, border: "none",
-                  background: "#eff6ff", color: "#2563eb", fontWeight: 700, fontSize: 14, cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 6 }}>
-                <ExternalLink size={14} /> Dossier médical
-              </button>
-            </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+            <button onClick={() => setViewTarget(null)}
+              style={{ padding: "9px 18px", borderRadius: 8, border: "1px solid #e2e8f0",
+                background: "white", color: "#475569", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
+              Fermer
+            </button>
+            <button onClick={() => { setViewTarget(null); router.push(`/dashboard/doctors/patients/${viewTarget.id}`); }}
+              style={{ padding: "9px 18px", borderRadius: 8, border: "none",
+                background: "#eff6ff", color: "#2563eb", fontWeight: 700, fontSize: 14, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6 }}>
+              <ExternalLink size={14} /> Dossier médical
+            </button>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  function renderDeleteModal() {
+    if (!deleteTarget) return null;
+
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+        zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ background: "white", borderRadius: 16, padding: 32, width: 400,
+          boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#fef2f2",
+              display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
+              <Trash2 size={24} color="#dc2626" />
+            </div>
+            <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", marginBottom: 8 }}>
+              Supprimer ce patient ?
+            </h3>
+            <p style={{ color: "#64748b", fontSize: 14 }}>
+              <strong>{deleteTarget.prenom} {deleteTarget.nom}</strong> (CIN: {deleteTarget.cin}).
+              <br />Toutes ses données seront supprimées définitivement.
+            </p>
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+            <button onClick={() => setDeleteTarget(null)}
+              style={{ padding: "10px 20px", borderRadius: 8, border: "1px solid #e2e8f0",
+                background: "white", color: "#475569", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
+              Annuler
+            </button>
+            <button onClick={handleDelete} disabled={deleting}
+              style={{ padding: "10px 24px", borderRadius: 8, border: "none",
+                background: deleting ? "#fca5a5" : "#dc2626", color: "white",
+                fontWeight: 700, fontSize: 14, cursor: deleting ? "not-allowed" : "pointer",
+                display: "flex", alignItems: "center", gap: 8 }}>
+              {deleting ? <><Spinner /> Suppression…</> : "Supprimer"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      {renderHeader()}
+
+      {renderSearchBar()}
+
+      <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.04)", overflow: "hidden" }}>
+        {renderTable()}
+        {renderPagination()}
+      </div>
+
+      {renderViewModal()}
 
       {/* ── Create modal ── */}
       {showCreate && (
@@ -553,42 +644,7 @@ export default function PatientsPage() {
           saving={saving} error={modalError} />
       )}
 
-      {/* ── Delete confirmation ── */}
-      {deleteTarget && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
-          zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ background: "white", borderRadius: 16, padding: 32, width: 400,
-            boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
-            <div style={{ textAlign: "center", marginBottom: 20 }}>
-              <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#fef2f2",
-                display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
-                <Trash2 size={24} color="#dc2626" />
-              </div>
-              <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", marginBottom: 8 }}>
-                Supprimer ce patient ?
-              </h3>
-              <p style={{ color: "#64748b", fontSize: 14 }}>
-                <strong>{deleteTarget.prenom} {deleteTarget.nom}</strong> (CIN: {deleteTarget.cin}).
-                <br />Toutes ses données seront supprimées définitivement.
-              </p>
-            </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
-              <button onClick={() => setDeleteTarget(null)}
-                style={{ padding: "10px 20px", borderRadius: 8, border: "1px solid #e2e8f0",
-                  background: "white", color: "#475569", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
-                Annuler
-              </button>
-              <button onClick={handleDelete} disabled={deleting}
-                style={{ padding: "10px 24px", borderRadius: 8, border: "none",
-                  background: deleting ? "#fca5a5" : "#dc2626", color: "white",
-                  fontWeight: 700, fontSize: 14, cursor: deleting ? "not-allowed" : "pointer",
-                  display: "flex", alignItems: "center", gap: 8 }}>
-                {deleting ? <><Spinner /> Suppression…</> : "Supprimer"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderDeleteModal()}
     </div>
   );
 }

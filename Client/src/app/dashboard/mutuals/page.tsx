@@ -23,6 +23,64 @@ function fmtDate(iso?: string) {
   return new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
+function buildMutuelleLabel(mutuelle: import("@/lib/api").Mutuelle): string {
+  const typeLabel = TYPE_LABEL[mutuelle.type].label;
+  const org = mutuelle.organismeNom ? ` — ${mutuelle.organismeNom}` : "";
+  const imm = mutuelle.immatriculation ? ` · Imm. ${mutuelle.immatriculation}` : "";
+  return `${typeLabel}${org}${imm}`;
+}
+
+function validateMutuelleForm(form: typeof emptyForm): string | null {
+  if (!form.patientId || !form.type) {
+    return "Veuillez sélectionner un patient et un type.";
+  }
+  if (form.immatriculation && !/^\d{9}$/.test(form.immatriculation)) {
+    return "L'immatriculation doit contenir exactement 9 chiffres.";
+  }
+  return null;
+}
+
+function buildMutuelleDto(form: typeof emptyForm): MutuelleRequestDto {
+  return {
+    patientId: form.patientId!,
+    type: form.type,
+    numeroAffiliation: form.numeroAffiliation || undefined,
+    organismeNom: form.organismeNom || undefined,
+    dateAffiliation: form.dateAffiliation || undefined,
+    immatriculation: form.immatriculation ? Number(form.immatriculation) : undefined,
+    somEtabPens: form.somEtabPens ? Number(form.somEtabPens) : undefined,
+  };
+}
+
+function validateDossierForm(cForm: typeof cForm): string | null {
+  if (!cForm.patientId || !cForm.mutuelleId || !cForm.consultationId) {
+    return "Veuillez sélectionner patient, mutuelle et consultation.";
+  }
+  return null;
+}
+
+function buildDossierDto(cForm: typeof cForm): DossierRemboursementRequestDto {
+  return {
+    patientId: cForm.patientId!,
+    mutuelleId: cForm.mutuelleId!,
+    consultationId: cForm.consultationId!,
+  };
+}
+
+function buildEditForm(mutuelle: Mutuelle): typeof emptyForm {
+  return {
+    patientId: mutuelle.patientId,
+    patientQuery: `${mutuelle.patientPrenom} ${mutuelle.patientNom}`,
+    patientLabel: `${mutuelle.patientPrenom} ${mutuelle.patientNom}`,
+    type: mutuelle.type,
+    numeroAffiliation: mutuelle.numeroAffiliation || "",
+    organismeNom: mutuelle.organismeNom || "",
+    dateAffiliation: mutuelle.dateAffiliation || "",
+    immatriculation: mutuelle.immatriculation?.toString() || "",
+    somEtabPens: mutuelle.somEtabPens?.toString() || "",
+  };
+}
+
 const TYPE_LABEL: Record<TypeMutuelle, { label: string; bg: string; color: string }> = {
   CNSS:             { label: "CNSS",             bg: "#eff6ff", color: "#2563eb" },
   CNOPS:            { label: "CNOPS",            bg: "#fdf4ff", color: "#9333ea" },
@@ -167,39 +225,21 @@ function MutuellesTab() {
 
   function openEdit(m: Mutuelle) {
     setEditTarget(m);
-    setForm({
-      patientId: m.patientId,
-      patientQuery: `${m.patientPrenom} ${m.patientNom}`,
-      patientLabel: `${m.patientPrenom} ${m.patientNom}`,
-      type: m.type,
-      numeroAffiliation: m.numeroAffiliation ?? "",
-      organismeNom: m.organismeNom ?? "",
-      dateAffiliation: m.dateAffiliation ?? "",
-      immatriculation: m.immatriculation != null ? String(m.immatriculation) : "",
-      somEtabPens: m.somEtabPens != null ? String(m.somEtabPens) : "",
-    });
+    setForm(buildEditForm(m));
     setModalError("");
     setShowModal(true);
   }
 
   async function handleSave() {
-    if (!form.patientId || !form.type) {
-      setModalError("Veuillez sélectionner un patient et un type."); return;
+    const error = validateMutuelleForm(form);
+    if (error) {
+      setModalError(error);
+      return;
     }
-    if (form.immatriculation && !/^\d{9}$/.test(form.immatriculation)) {
-      setModalError("L'immatriculation doit contenir exactement 9 chiffres."); return;
-    }
-    setSaving(true); setModalError("");
+    setSaving(true);
+    setModalError("");
     try {
-      const dto: MutuelleRequestDto = {
-        patientId: form.patientId,
-        type: form.type,
-        numeroAffiliation: form.numeroAffiliation || undefined,
-        organismeNom: form.organismeNom || undefined,
-        dateAffiliation: form.dateAffiliation || undefined,
-        immatriculation: form.immatriculation ? Number(form.immatriculation) : undefined,
-        somEtabPens: form.somEtabPens ? Number(form.somEtabPens) : undefined,
-      };
+      const dto = buildMutuelleDto(form);
       if (editTarget) {
         const updated = await updateMutuelle(editTarget.id, dto);
         setMutuelles((prev) => prev.map((m) => m.id === updated.id ? updated : m));
@@ -210,7 +250,9 @@ function MutuellesTab() {
       setShowModal(false);
     } catch (e) {
       setModalError(e instanceof ApiError ? e.message : "Erreur lors de l'enregistrement.");
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleDelete() {
@@ -529,6 +571,24 @@ function DossiersTab() {
   const [patientConsultations, setPatientConsultations] = useState<Consultation[]>([]);
   const [loadingPatientData, setLoadingPatientData] = useState(false);
 
+  function handleMutuelleResult(mutRes: PromiseSettledResult<import("@/lib/api").Mutuelle>) {
+    if (mutRes.status === "fulfilled") {
+      const mutuelle = mutRes.value;
+      setPatientMutuelle(mutuelle);
+      setCForm((f) => ({ ...f, mutuelleId: mutuelle.id, mutuelleLabel: buildMutuelleLabel(mutuelle) }));
+    } else {
+      setPatientMutuelle(null);
+    }
+  }
+
+  function handleConsultationsResult(consRes: PromiseSettledResult<{ content: Consultation[] }>) {
+    if (consRes.status === "fulfilled") {
+      setPatientConsultations(consRes.value.content);
+    } else {
+      setPatientConsultations([]);
+    }
+  }
+
   const load = useCallback(async (p: number, s: StatutDossier | "") => {
     setLoading(true);
     try {
@@ -549,38 +609,32 @@ function DossiersTab() {
         getMutuelleByPatient(p.id),
         getPatientConsultations(p.id, 0, 50),
       ]);
-      if (mutRes.status === "fulfilled") {
-        setPatientMutuelle(mutRes.value);
-        setCForm((f) => ({ ...f, mutuelleId: mutRes.value.id,
-          mutuelleLabel: `${TYPE_LABEL[mutRes.value.type].label}${mutRes.value.organismeNom ? ` — ${mutRes.value.organismeNom}` : ""}${mutRes.value.immatriculation ? ` · Imm. ${mutRes.value.immatriculation}` : ""}` }));
-      } else {
-        setPatientMutuelle(null);
-      }
-      if (consRes.status === "fulfilled") {
-        setPatientConsultations(consRes.value.content);
-      } else {
-        setPatientConsultations([]);
-      }
-    } finally { setLoadingPatientData(false); }
+
+      handleMutuelleResult(mutRes);
+      handleConsultationsResult(consRes);
+    } finally {
+      setLoadingPatientData(false);
+    }
   }
 
   async function handleCreate() {
-    if (!cForm.patientId || !cForm.mutuelleId || !cForm.consultationId) {
-      setModalError("Veuillez sélectionner patient, mutuelle et consultation."); return;
+    const error = validateDossierForm(cForm);
+    if (error) {
+      setModalError(error);
+      return;
     }
-    setSaving(true); setModalError("");
+    setSaving(true);
+    setModalError("");
     try {
-      const dto: DossierRemboursementRequestDto = {
-        patientId: cForm.patientId,
-        mutuelleId: cForm.mutuelleId,
-        consultationId: cForm.consultationId,
-      };
+      const dto = buildDossierDto(cForm);
       const created = await createDossier(dto);
       setDossiers((prev) => [created, ...prev]);
       setShowCreate(false);
     } catch (e) {
       setModalError(e instanceof ApiError ? e.message : "Erreur lors de la création.");
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleStatut(id: number, statut: StatutDossier) {
