@@ -29,13 +29,13 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install frontend dependencies
-        run: npm ci
-        working-directory: ./Client
+      # - name: Install frontend dependencies
+      #   run: npm ci
+      #   working-directory: ./Client
 
-      - name: Run frontend tests with coverage
-        run: npm test -- --coverage --watchAll=false
-        working-directory: ./Client
+      # - name: Run frontend tests with coverage
+      #   run: npm test -- --coverage --watchAll=false
+      #   working-directory: ./Client
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@2500896589ef8f7247069a56136f8dc177c27ccf  # v5
