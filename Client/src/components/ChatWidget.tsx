@@ -61,12 +61,15 @@ export default function ChatWidget() {
   const pathname = usePathname();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
+  const welcomeMessage =
+    user?.role === "PATIENT"
+      ? "Bonjour ! Je suis **Rahma Assistant**.\n\nVous etes connecte comme patient. Je peux vous aider a trouver un medecin, verifier les disponibilites, prendre rendez-vous, ou consulter vos informations patient."
+      : "Bonjour ! Je suis **Rahma Assistant**.\n\nJe peux vous aider a trouver un medecin, verifier les disponibilites, prendre rendez-vous, ou consulter vos informations patient.";
+
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content:
-        "Bonjour ! Je suis **Rahma Assistant**.\n\n" +
-        "Je peux vous aider a trouver un medecin, verifier les disponibilites, prendre rendez-vous, ou consulter vos informations patient si vous etes connecte.",
+      content: welcomeMessage,
     },
   ]);
   const [input, setInput] = useState("");
@@ -80,6 +83,14 @@ export default function ChatWidget() {
       setOpen(false);
     }
   }, [pathname]);
+
+  useEffect(() => {
+    setMessages((prev) =>
+      prev.length === 1 && prev[0].role === "assistant"
+        ? [{ role: "assistant", content: welcomeMessage }]
+        : prev
+    );
+  }, [welcomeMessage]);
 
   useEffect(() => {
     if (!open) return;

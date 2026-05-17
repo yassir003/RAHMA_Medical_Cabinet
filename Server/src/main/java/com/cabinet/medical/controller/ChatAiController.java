@@ -1,6 +1,5 @@
 package com.cabinet.medical.controller;
 
-import com.cabinet.medical.dto.request.ChatRequest;
 import com.cabinet.medical.dto.response.ApiResponse;
 import com.cabinet.medical.service.ChatAiService;
 import jakarta.validation.Valid;
@@ -34,7 +33,7 @@ public class ChatAiController {
      */
     @PostMapping
     public ResponseEntity<ApiResponse<String>> chat(
-            @Valid @RequestBody ChatRequest request,
+            @Valid @RequestBody com.cabinet.medical.dto.request.ChatRequest request,
             Authentication authentication) {
         String response = chatAiService.chat(request.normalizedMessages(), authentication);
         return ResponseEntity.ok(ApiResponse.success(response, "Reponse IA", 200));
