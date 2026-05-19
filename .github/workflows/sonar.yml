@@ -34,8 +34,13 @@ jobs:
         working-directory: ./Client
 
       - name: Run frontend tests with coverage
-        run: npm test -- --coverage --watchAll=false
+        run: npm run test:coverage -- --runInBand
         working-directory: ./Client
+
+      - name: Normalize frontend LCOV paths for SonarQube
+        run: |
+          sed -i 's#^SF:src/#SF:Client/src/#' Client/coverage/lcov.info
+          sed -i 's#^SF:src\\#SF:Client/src/#' Client/coverage/lcov.info
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@2500896589ef8f7247069a56136f8dc177c27ccf  # v5
