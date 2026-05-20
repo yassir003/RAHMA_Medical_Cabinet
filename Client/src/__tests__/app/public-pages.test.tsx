@@ -62,6 +62,30 @@ describe("public pages", () => {
     expect(getMedecins).toHaveBeenCalledWith(0, 4);
   });
 
+  it("should show empty specialist state on landing page when no doctors are available", async () => {
+    (getMedecins as jest.Mock).mockResolvedValueOnce({
+      content: [],
+      totalPages: 0,
+      totalElements: 0,
+    });
+
+    render(<LandingPage />);
+
+    await waitFor(() => expect(screen.getByText("No specialists available at the moment.")).toBeInTheDocument());
+  });
+
+  it("should expand and collapse a landing page FAQ answer", async () => {
+    render(<LandingPage />);
+
+    await userEvent.click(screen.getByRole("button", { name: /Why choose our medical for your family/i }));
+
+    expect(screen.getByText(/comprehensive care/i)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Why choose our medical for your family/i }));
+
+    expect(screen.queryByText(/comprehensive care/i)).not.toBeInTheDocument();
+  });
+
   it("should show dashboard entry when public page receives authenticated user", () => {
     (useAuth as jest.Mock).mockReturnValue({
       user: { email: "admin@mail.com", role: "ADMIN" },

@@ -188,6 +188,14 @@ describe("dashboard appointment and doctor pages", () => {
     expect(mockPush).toHaveBeenCalledWith("/dashboard/doctors/patients/7");
   });
 
+  it("should redirect admin users away from doctor workspace", async () => {
+    (useAuth as jest.Mock).mockReturnValue({ user: { email: "admin@mail.com", role: "ADMIN" } });
+
+    render(<DoctorWorkspacePage />);
+
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/dashboard/doctors/list"));
+  });
+
   it("should create consultation from doctor modal", async () => {
     (useAuth as jest.Mock).mockReturnValue({ user: { email: "doctor@mail.com", role: "MEDECIN" } });
 
@@ -234,6 +242,45 @@ describe("dashboard appointment and doctor pages", () => {
     await userEvent.click(screen.getAllByRole("button", { name: /Confirmer/ })[0]);
 
     await waitFor(() => expect(updateRendezVousStatut).toHaveBeenCalledWith(30, "CONFIRME"));
+  });
+
+  it("should finish confirmed doctor rendez-vous from rendez-vous tab", async () => {
+    (useAuth as jest.Mock).mockReturnValue({ user: { email: "doctor@mail.com", role: "MEDECIN" } });
+    (getMyRdvsAsMedecin as jest.Mock).mockResolvedValueOnce({
+      content: [{ ...appointment, statut: "CONFIRME" }],
+      totalElements: 1,
+      totalPages: 1,
+    });
+    (updateRendezVousStatut as jest.Mock).mockResolvedValueOnce({ ...appointment, statut: "TERMINE" });
+
+    render(<DoctorWorkspacePage />);
+
+    await waitFor(() => expect(screen.getByText(/Rendez-vous/)).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /Rendez-vous/ }));
+    await userEvent.click(await screen.findByRole("button", { name: /Terminer/ }));
+
+    await waitFor(() => expect(updateRendezVousStatut).toHaveBeenCalledWith(30, "TERMINE"));
+  });
+
+  it("should create consultation from planification appointment shortcut", async () => {
+    (useAuth as jest.Mock).mockReturnValue({ user: { email: "doctor@mail.com", role: "MEDECIN" } });
+
+    render(<DoctorWorkspacePage />);
+
+    await waitFor(() => expect(screen.getByText(/Planification/)).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /Planification/ }));
+    await userEvent.click(await screen.findByRole("button", { name: /Créer consultation/ }));
+    await userEvent.type(screen.getByPlaceholderText(/Diagnostic/), "Stable after appointment");
+    await userEvent.click(screen.getByRole("button", { name: /Créer la consultation/ }));
+
+    await waitFor(() => expect(createConsultation).toHaveBeenCalledWith(expect.objectContaining({
+      patientId: 7,
+      medecinId: 4,
+      dateVisite: `${today}T09:00`,
+      motif: "Annual exam",
+      notes: "Bring reports",
+      diagnostic: "Stable after appointment",
+    })));
   });
 
   it("should cancel patient appointment from patient appointment list", async () => {

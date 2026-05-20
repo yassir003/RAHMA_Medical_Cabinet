@@ -6,6 +6,7 @@ import CreateSecretaryPage from "@/app/dashboard/secretary/create/page";
 import SecretaryListPage from "@/app/dashboard/secretary/list/page";
 import { useAuth } from "@/context/AuthContext";
 import {
+  ApiError,
   createMedecin,
   createSecretaire,
   deleteMedecin,
@@ -90,6 +91,21 @@ describe("dashboard staff pages", () => {
     expect(screen.getByText(/mot de passe est requis/i)).toBeInTheDocument();
   });
 
+  it("should validate invalid doctor email and mismatched passwords", async () => {
+    render(<CreateDoctorPage />);
+
+    await userEvent.type(screen.getByPlaceholderText("Ex: Benali"), "House");
+    await userEvent.type(screen.getByPlaceholderText("Ex: Ahmed"), "Gregory");
+    await userEvent.type(screen.getByPlaceholderText("dr.benali@cabinet.com"), "doctor@mail");
+    await userEvent.type(screen.getByPlaceholderText(/Minimum 8/), "password123");
+    await userEvent.type(screen.getByPlaceholderText(/mot de passe/), "different123");
+    await userEvent.click(screen.getByRole("button", { name: /Enregistrer le/ }));
+
+    expect(createMedecin).not.toHaveBeenCalled();
+    expect(screen.getByText("Email invalide.")).toBeInTheDocument();
+    expect(screen.getByText("Les mots de passe ne correspondent pas.")).toBeInTheDocument();
+  });
+
   it("should create a doctor and show success before redirecting", async () => {
     jest.useFakeTimers();
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
@@ -121,6 +137,22 @@ describe("dashboard staff pages", () => {
     expect(mockPush).toHaveBeenCalledWith("/dashboard/doctors/list");
   });
 
+  it("should display doctor creation API errors without redirecting", async () => {
+    (createMedecin as jest.Mock).mockRejectedValueOnce(new ApiError("Email deja utilise"));
+    render(<CreateDoctorPage />);
+
+    await userEvent.type(screen.getByPlaceholderText("Ex: Benali"), "House");
+    await userEvent.type(screen.getByPlaceholderText("Ex: Ahmed"), "Gregory");
+    await userEvent.selectOptions(screen.getByRole("combobox"), "Cardiologue");
+    await userEvent.type(screen.getByPlaceholderText("dr.benali@cabinet.com"), "doctor@mail.com");
+    await userEvent.type(screen.getByPlaceholderText(/Minimum 8/), "password123");
+    await userEvent.type(screen.getByPlaceholderText(/mot de passe/), "password123");
+    await userEvent.click(screen.getByRole("button", { name: /Enregistrer le/ }));
+
+    expect(await screen.findByText("Email deja utilise")).toBeInTheDocument();
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
   it("should edit and delete a doctor from the doctor list", async () => {
     render(<DoctorsListPage />);
 
@@ -139,6 +171,18 @@ describe("dashboard staff pages", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Supprimer/ }));
     await waitFor(() => expect(deleteMedecin).toHaveBeenCalledWith(4));
+  });
+
+  it("should render doctor list as read-only for non-admin users", async () => {
+    (useAuth as jest.Mock).mockReturnValue({ user: { role: "MEDECIN" } });
+
+    render(<DoctorsListPage />);
+
+    await waitFor(() => expect(screen.getByText("Dr. Gregory House")).toBeInTheDocument());
+
+    expect(screen.queryByRole("button", { name: /Ajouter un/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Modifier/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Supprimer/ })).not.toBeInTheDocument();
   });
 
   it("should show empty doctor state when no doctors are returned", async () => {
