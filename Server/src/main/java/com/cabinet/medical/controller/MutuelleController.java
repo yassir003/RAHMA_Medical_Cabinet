@@ -54,4 +54,11 @@ public class MutuelleController {
     public ResponseEntity<ApiResponse<MutuelleResponse>> getByPatient(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(mutuelleService.getByPatient(id), "Mutuelle du patient", 200));
     }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','SECRETAIRE')")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+        mutuelleService.delete(id);
+        return ResponseEntity.ok(ApiResponse.success(null, "Mutuelle supprimée", 200));
+    }
 }

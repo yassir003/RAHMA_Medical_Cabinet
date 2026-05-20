@@ -150,12 +150,15 @@ class AdditionalControllerCoverageTest {
         var patientResponse = controller.getByPatient(5L);
         var createResponse = controller.create(request);
         var updateResponse = controller.update(4L, request);
+        var deleteResponse = controller.delete(4L);
 
         assertThat(allResponse.getBody().getData().getContent()).containsExactly(response);
         assertThat(byIdResponse.getBody().getData().getId()).isEqualTo(4L);
         assertThat(patientResponse.getBody().getData().getPatientId()).isEqualTo(5L);
         assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(updateResponse.getBody().getData().getOrganismeNom()).isEqualTo("CNSS");
+        assertThat(deleteResponse.getBody().getStatus()).isEqualTo(200);
+        verify(mutuelleService).delete(4L);
     }
 
     @Test

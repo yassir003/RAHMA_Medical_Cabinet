@@ -64,6 +64,12 @@ public class MutuelleService {
         return mutuelleMapper.toResponse(mutuelleRepository.save(m));
     }
 
+    @Transactional
+    public void delete(Long id) {
+        findOrThrow(id);
+        mutuelleRepository.deleteById(id);
+    }
+
     private Mutuelle findOrThrow(Long id) {
         return mutuelleRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Mutuelle non trouvée avec l'id: " + id));

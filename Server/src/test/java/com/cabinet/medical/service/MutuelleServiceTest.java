@@ -124,6 +124,17 @@ class MutuelleServiceTest {
     }
 
     @Test
+    @DisplayName("should delete insurance when it exists")
+    void shouldDeleteInsuranceWhenItExists() {
+        Mutuelle mutuelle = mutuelle(6L, patient(1L));
+        when(mutuelleRepository.findById(6L)).thenReturn(Optional.of(mutuelle));
+
+        mutuelleService.delete(6L);
+
+        verify(mutuelleRepository).deleteById(6L);
+    }
+
+    @Test
     @DisplayName("should throw not found when patient is missing during create")
     void shouldThrowNotFoundWhenPatientIsMissingDuringCreate() {
         MutuelleRequest request = request();
