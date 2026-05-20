@@ -506,12 +506,15 @@ export interface Secretaire {
   assignedDoctor?: string;
 }
 
-export interface SecretaireRequestDto {
+export interface SecretaireUpdateRequestDto {
   nom: string;
   prenom: string;
   telephone: string;
   email: string;
-  password?: string;
+}
+
+export interface SecretaireRequestDto extends SecretaireUpdateRequestDto {
+  password: string;
 }
 
 export async function getSecretaires(
@@ -528,7 +531,7 @@ export async function createSecretaire(data: SecretaireRequestDto): Promise<Secr
   return request<Secretaire>("/secretaires", { method: "POST", body: JSON.stringify(data) });
 }
 
-export async function updateSecretaire(id: number, data: SecretaireRequestDto): Promise<Secretaire> {
+export async function updateSecretaire(id: number, data: SecretaireUpdateRequestDto): Promise<Secretaire> {
   return request<Secretaire>(`/secretaires/${id}`, { method: "PUT", body: JSON.stringify(data) });
 }
 

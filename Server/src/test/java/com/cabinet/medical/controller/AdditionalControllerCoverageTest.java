@@ -4,6 +4,7 @@ import com.cabinet.medical.dto.request.DossierRemboursementRequest;
 import com.cabinet.medical.dto.request.MedecinRequest;
 import com.cabinet.medical.dto.request.MutuelleRequest;
 import com.cabinet.medical.dto.request.SecretaireRequest;
+import com.cabinet.medical.dto.request.SecretaireUpdateRequest;
 import com.cabinet.medical.dto.response.DashboardStatsResponse;
 import com.cabinet.medical.dto.response.DossierRemboursementResponse;
 import com.cabinet.medical.dto.response.MedecinResponse;
@@ -105,6 +106,7 @@ class AdditionalControllerCoverageTest {
     void shouldReturnAndMutateSecretariesWhenSecretaireControllerIsCalled() {
         SecretaireController controller = new SecretaireController(secretaireService);
         SecretaireRequest request = secretaireRequest();
+        SecretaireUpdateRequest updateRequest = secretaireUpdateRequest();
         SecretaireResponse secretary = SecretaireResponse.builder()
             .id(3L)
             .nom("Smith")
@@ -115,12 +117,12 @@ class AdditionalControllerCoverageTest {
         when(secretaireService.getAll(eq("anna"), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(secretary)));
         when(secretaireService.getById(3L)).thenReturn(secretary);
         when(secretaireService.create(request)).thenReturn(secretary);
-        when(secretaireService.update(3L, request)).thenReturn(secretary);
+        when(secretaireService.update(3L, updateRequest)).thenReturn(secretary);
 
         var listResponse = controller.getAll(0, 5, "prenom", "asc", "anna");
         var byIdResponse = controller.getById(3L);
         var createResponse = controller.create(request);
-        var updateResponse = controller.update(3L, request);
+        var updateResponse = controller.update(3L, updateRequest);
         var deleteResponse = controller.delete(3L);
 
         assertThat(listResponse.getBody().getData().getContent()).containsExactly(secretary);
@@ -275,6 +277,15 @@ class AdditionalControllerCoverageTest {
         request.setTelephone("0600001111");
         request.setEmail("secretary@mail.com");
         request.setPassword("Password123");
+        return request;
+    }
+
+    private SecretaireUpdateRequest secretaireUpdateRequest() {
+        SecretaireUpdateRequest request = new SecretaireUpdateRequest();
+        request.setNom("Smith");
+        request.setPrenom("Anna");
+        request.setTelephone("0600001111");
+        request.setEmail("secretary@mail.com");
         return request;
     }
 

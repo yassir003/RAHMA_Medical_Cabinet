@@ -238,8 +238,10 @@ describe("dashboard staff pages", () => {
 
     await waitFor(() => expect(updateSecretaire).toHaveBeenCalledWith(9, expect.objectContaining({
       telephone: "0622222222",
-      password: "dummy_password",
     })));
+    expect(updateSecretaire).toHaveBeenCalledWith(9, expect.not.objectContaining({
+      password: expect.anything(),
+    }));
 
     await userEvent.click(screen.getByTitle("Supprimer"));
     await waitFor(() => expect(deleteSecretaire).toHaveBeenCalledWith(9));

@@ -1,6 +1,7 @@
 package com.cabinet.medical.service;
 
 import com.cabinet.medical.dto.request.SecretaireRequest;
+import com.cabinet.medical.dto.request.SecretaireUpdateRequest;
 import com.cabinet.medical.dto.response.SecretaireResponse;
 import com.cabinet.medical.entity.Secretaire;
 import com.cabinet.medical.entity.User;
@@ -62,11 +63,14 @@ public class SecretaireService {
     }
 
     @Transactional
-    public SecretaireResponse update(Long id, SecretaireRequest request) {
+    public SecretaireResponse update(Long id, SecretaireUpdateRequest request) {
         Secretaire s = findOrThrow(id);
         s.setNom(request.getNom());
         s.setPrenom(request.getPrenom());
         s.setTelephone(request.getTelephone());
+        if (s.getUser() != null) {
+            s.getUser().setEmail(request.getEmail());
+        }
         return secretaireMapper.toResponse(secretaireRepository.save(s));
     }
 

@@ -73,7 +73,10 @@ export default function SecretaryListPage() {
     try {
       setIsUpdating(true);
       await updateSecretaire(editId, {
-        nom, prenom, email, telephone, password: "dummy_password" // password is not updated in backend service
+        nom,
+        prenom,
+        email,
+        telephone,
       });
       setIsModalOpen(false);
       fetchSecretaries();

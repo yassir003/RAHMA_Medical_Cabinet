@@ -1,6 +1,7 @@
 package com.cabinet.medical.service;
 
 import com.cabinet.medical.dto.request.SecretaireRequest;
+import com.cabinet.medical.dto.request.SecretaireUpdateRequest;
 import com.cabinet.medical.dto.response.SecretaireResponse;
 import com.cabinet.medical.entity.Secretaire;
 import com.cabinet.medical.entity.User;
@@ -100,10 +101,12 @@ class SecretaireServiceTest {
     @DisplayName("should update secretary when secretary exists")
     void shouldUpdateSecretaryWhenSecretaryExists() {
         Secretaire secretaire = secretaire(4L);
-        SecretaireRequest request = request();
+        SecretaireUpdateRequest request = updateRequest();
         request.setTelephone("0611111111");
+        request.setEmail("updated-secretary@mail.com");
         SecretaireResponse expected = response(4L);
         expected.setTelephone("0611111111");
+        expected.setEmail("updated-secretary@mail.com");
 
         when(secretaireRepository.findById(4L)).thenReturn(Optional.of(secretaire));
         when(secretaireRepository.save(secretaire)).thenReturn(secretaire);
@@ -113,6 +116,7 @@ class SecretaireServiceTest {
 
         assertThat(actual.getTelephone()).isEqualTo("0611111111");
         assertThat(secretaire.getTelephone()).isEqualTo("0611111111");
+        assertThat(secretaire.getUser().getEmail()).isEqualTo("updated-secretary@mail.com");
     }
 
     @Test
@@ -144,6 +148,15 @@ class SecretaireServiceTest {
         request.setTelephone("0600000000");
         request.setEmail("secretary@mail.com");
         request.setPassword("Password123");
+        return request;
+    }
+
+    private SecretaireUpdateRequest updateRequest() {
+        SecretaireUpdateRequest request = new SecretaireUpdateRequest();
+        request.setNom("Secretary");
+        request.setPrenom("Amal");
+        request.setTelephone("0600000000");
+        request.setEmail("secretary@mail.com");
         return request;
     }
 

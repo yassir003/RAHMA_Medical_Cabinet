@@ -1,6 +1,7 @@
 package com.cabinet.medical.controller;
 
 import com.cabinet.medical.dto.request.SecretaireRequest;
+import com.cabinet.medical.dto.request.SecretaireUpdateRequest;
 import com.cabinet.medical.dto.response.ApiResponse;
 import com.cabinet.medical.dto.response.SecretaireResponse;
 import com.cabinet.medical.service.SecretaireService;
@@ -50,7 +51,7 @@ public class SecretaireController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<SecretaireResponse>> update(@PathVariable Long id,
-                                                               @Valid @RequestBody SecretaireRequest request) {
+                                                               @Valid @RequestBody SecretaireUpdateRequest request) {
         return ResponseEntity.ok(ApiResponse.success(secretaireService.update(id, request), "Secrétaire mis à jour", 200));
     }
 
