@@ -395,7 +395,7 @@ export default function PatientAppointmentsPage() {
                 <tbody>
                   {rdvs.map(rdv => {
                     const st = STATUS_STYLE[rdv.statut] ?? STATUS_STYLE.PLANIFIE;
-                    const cancellable = rdv.statut !== "ANNULE" && rdv.statut !== "TERMINE" && new Date(rdv.dateHeure) > new Date();
+                    const cancellable = rdv.statut !== "ANNULE" && rdv.statut !== "TERMINE";
                     return (
                       <tr key={rdv.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                         <td style={{ padding: "16px 20px", fontSize: 13, color: "#0f172a", fontWeight: 500 }}>
