@@ -9,6 +9,7 @@ import com.cabinet.medical.entity.User;
 import com.cabinet.medical.enums.Role;
 import com.cabinet.medical.enums.StatutRdv;
 import com.cabinet.medical.exception.ConflitHoraireException;
+import com.cabinet.medical.exception.ResourceNotFoundException;
 import com.cabinet.medical.mapper.RendezVousMapper;
 import com.cabinet.medical.messaging.producer.AuditEventProducer;
 import com.cabinet.medical.messaging.producer.DashboardProducer;
@@ -24,8 +25,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
@@ -108,6 +111,111 @@ class RendezVousServiceTest {
     }
 
     @Test
+    void shouldDenyPatientCreatingAppointmentForAnotherPatient() {
+        RendezVousRequest request = TestDataFactory.rendezVousRequest();
+        Patient otherPatient = TestDataFactory.patient(7L);
+        authenticateAsPatient(otherPatient.getUser().getEmail());
+
+        when(patientRepository.findByUser_Email(otherPatient.getUser().getEmail())).thenReturn(Optional.of(otherPatient));
+
+        assertThatThrownBy(() -> rendezVousService.creerRendezVous(request))
+            .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+
+        verify(rendezVousRepository, never()).save(any(RendezVous.class));
+    }
+
+    @Test
+    void shouldDenyPatientReadingForeignAppointment() {
+        Patient owner = TestDataFactory.patient(1L);
+        Patient otherPatient = TestDataFactory.patient(7L);
+        RendezVous rdv = TestDataFactory.rendezVous(3L, owner, TestDataFactory.medecin(2L));
+        authenticateAsPatient(otherPatient.getUser().getEmail());
+
+        when(rendezVousRepository.findById(3L)).thenReturn(Optional.of(rdv));
+        when(patientRepository.findByUser_Email(otherPatient.getUser().getEmail())).thenReturn(Optional.of(otherPatient));
+
+        assertThatThrownBy(() -> rendezVousService.getById(3L))
+            .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+            .hasMessageContaining("ne vous appartient pas");
+    }
+
+    @Test
+    void shouldThrowExceptionWhenAppointmentDoesNotExist() {
+        when(rendezVousRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> rendezVousService.getById(99L))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("Rendez-vous non trouv");
+    }
+
+    @Test
+    void shouldUpdateRendezVousDetails() {
+        Patient patient = TestDataFactory.patient(1L);
+        Medecin medecin = TestDataFactory.medecin(2L);
+        RendezVous rdv = TestDataFactory.rendezVous(3L, patient, medecin);
+        RendezVousRequest request = TestDataFactory.rendezVousRequest();
+        request.setMotif("Urgence");
+        request.setNotes("Nouvelles notes");
+        request.setDateHeure(LocalDateTime.of(2026, 5, 13, 14, 30));
+        RendezVousResponse expected = TestDataFactory.rendezVousResponse(3L);
+
+        when(rendezVousRepository.findById(3L)).thenReturn(Optional.of(rdv));
+        when(rendezVousRepository.save(rdv)).thenReturn(rdv);
+        when(rendezVousMapper.toResponse(rdv)).thenReturn(expected);
+
+        RendezVousResponse response = rendezVousService.update(3L, request);
+
+        assertThat(response.getId()).isEqualTo(3L);
+        assertThat(rdv.getMotif()).isEqualTo("Urgence");
+        assertThat(rdv.getNotes()).isEqualTo("Nouvelles notes");
+        assertThat(rdv.getDateHeure()).isEqualTo(LocalDateTime.of(2026, 5, 13, 14, 30));
+    }
+
+    @Test
+    void shouldConfirmRendezVousAndNotifyPatient() {
+        RendezVous rdv = TestDataFactory.rendezVous(3L, TestDataFactory.patient(1L), TestDataFactory.medecin(2L));
+        RendezVousResponse expected = TestDataFactory.rendezVousResponse(3L);
+
+        when(rendezVousRepository.findById(3L)).thenReturn(Optional.of(rdv));
+        when(rendezVousRepository.save(rdv)).thenReturn(rdv);
+        when(rendezVousMapper.toResponse(rdv)).thenReturn(expected);
+
+        RendezVousResponse response = rendezVousService.changerStatut(3L, StatutRdv.CONFIRME);
+
+        assertThat(response.getId()).isEqualTo(3L);
+        assertThat(rdv.getStatut()).isEqualTo(StatutRdv.CONFIRME);
+        verify(notificationService).notifierRdvConfirme(rdv);
+        verify(auditEventProducer).publierEvenementAudit("UPDATE_STATUT", "RendezVous", 3L);
+    }
+
+    @Test
+    void shouldCancelRendezVousAndNotifyPatient() {
+        RendezVous rdv = TestDataFactory.rendezVous(3L, TestDataFactory.patient(1L), TestDataFactory.medecin(2L));
+        RendezVousResponse expected = TestDataFactory.rendezVousResponse(3L);
+
+        when(rendezVousRepository.findById(3L)).thenReturn(Optional.of(rdv));
+        when(rendezVousRepository.save(rdv)).thenReturn(rdv);
+        when(rendezVousMapper.toResponse(rdv)).thenReturn(expected);
+
+        RendezVousResponse response = rendezVousService.changerStatut(3L, StatutRdv.ANNULE);
+
+        assertThat(response.getId()).isEqualTo(3L);
+        assertThat(rdv.getStatut()).isEqualTo(StatutRdv.ANNULE);
+        verify(notificationProducer).envoyerAlerteAnnulation(rdv);
+        verify(notificationService).notifierRdvAnnule(rdv);
+    }
+
+    @Test
+    void shouldDeleteExistingAppointment() {
+        RendezVous rdv = TestDataFactory.rendezVous(3L, TestDataFactory.patient(1L), TestDataFactory.medecin(2L));
+        when(rendezVousRepository.findById(3L)).thenReturn(Optional.of(rdv));
+
+        rendezVousService.delete(3L);
+
+        verify(rendezVousRepository).deleteById(3L);
+    }
+
+    @Test
     void shouldAllowPatientToCancelOwnAppointment() {
         Patient patient = TestDataFactory.patient(1L);
         Medecin medecin = TestDataFactory.medecin(2L);
@@ -141,6 +249,21 @@ class RendezVousServiceTest {
     }
 
     @Test
+    void shouldThrowExceptionWhenCancellingAlreadyCancelledOwnAppointment() {
+        Patient patient = TestDataFactory.patient(1L);
+        RendezVous rdv = TestDataFactory.rendezVous(3L, patient, TestDataFactory.medecin(2L));
+        rdv.setStatut(StatutRdv.ANNULE);
+
+        when(rendezVousRepository.findById(3L)).thenReturn(Optional.of(rdv));
+        when(patientRepository.findByUser_Email(patient.getUser().getEmail())).thenReturn(Optional.of(patient));
+
+        assertThatThrownBy(() -> rendezVousService.annulerMien(3L, patient.getUser().getEmail()))
+            .isInstanceOf(IllegalStateException.class);
+
+        verify(rendezVousRepository, never()).save(any(RendezVous.class));
+    }
+
+    @Test
     void shouldReturnAvailableSlotsExcludingOccupiedOnes() {
         LocalDate date = LocalDate.of(2026, 5, 12);
         Patient patient = TestDataFactory.patient(1L);
@@ -160,6 +283,26 @@ class RendezVousServiceTest {
     }
 
     @Test
+    void shouldReturnAppointmentsByPatientAndAuthenticatedPatientEmail() {
+        Patient patient = TestDataFactory.patient(1L);
+        RendezVous rdv = TestDataFactory.rendezVous(3L, patient, TestDataFactory.medecin(2L));
+        RendezVousResponse expected = TestDataFactory.rendezVousResponse(3L);
+        PageRequest pageable = PageRequest.of(0, 10);
+
+        when(rendezVousRepository.findByPatientId(patient.getId(), pageable))
+            .thenReturn(new PageImpl<>(List.of(rdv), pageable, 1));
+        when(rendezVousRepository.findByPatient_User_Email(patient.getUser().getEmail(), pageable))
+            .thenReturn(new PageImpl<>(List.of(rdv), pageable, 1));
+        when(rendezVousMapper.toResponse(rdv)).thenReturn(expected);
+
+        var byPatient = rendezVousService.getByPatient(patient.getId(), pageable);
+        var mine = rendezVousService.getMyRdvs(patient.getUser().getEmail(), pageable);
+
+        assertThat(byPatient.getContent()).hasSize(1);
+        assertThat(mine.getContent()).hasSize(1);
+    }
+
+    @Test
     void shouldReturnDoctorAppointmentsByEmail() {
         User user = TestDataFactory.user(11L, "doctor@mail.com", Role.MEDECIN);
         Medecin medecin = TestDataFactory.medecin(2L);
@@ -175,5 +318,21 @@ class RendezVousServiceTest {
         var page = rendezVousService.getByMedecinEmail(user.getEmail(), PageRequest.of(0, 10));
 
         assertThat(page.getContent()).hasSize(1);
+    }
+
+    @Test
+    void shouldThrowExceptionWhenDoctorUserEmailIsUnknown() {
+        when(userRepository.findByEmail("missing@mail.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> rendezVousService.getByMedecinEmail("missing@mail.com", PageRequest.of(0, 10)))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("Utilisateur non trouv");
+    }
+
+    private void authenticateAsPatient(String email) {
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+            email,
+            "password",
+            List.of(new SimpleGrantedAuthority("ROLE_PATIENT"))));
     }
 }

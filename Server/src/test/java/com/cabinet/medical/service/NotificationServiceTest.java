@@ -3,6 +3,7 @@ package com.cabinet.medical.service;
 import com.cabinet.medical.entity.Notification;
 import com.cabinet.medical.entity.Patient;
 import com.cabinet.medical.entity.RendezVous;
+import com.cabinet.medical.exception.ResourceNotFoundException;
 import com.cabinet.medical.repository.NotificationRepository;
 import com.cabinet.medical.repository.PatientRepository;
 import com.cabinet.medical.support.TestDataFactory;
@@ -12,7 +13,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,6 +36,33 @@ class NotificationServiceTest {
     private NotificationService notificationService;
 
     @Test
+    void shouldReturnMyNotifications() {
+        Patient patient = TestDataFactory.patient(1L);
+        Notification notification = TestDataFactory.notification(9L, patient);
+        PageRequest pageable = PageRequest.of(0, 10);
+
+        when(patientRepository.findByUser_Email(patient.getUser().getEmail())).thenReturn(Optional.of(patient));
+        when(notificationRepository.findByPatientOrderByDateCreationDesc(patient, pageable))
+            .thenReturn(new PageImpl<>(List.of(notification), pageable, 1));
+
+        var page = notificationService.getMyNotifications(patient.getUser().getEmail(), pageable);
+
+        assertThat(page.getContent()).containsExactly(notification);
+    }
+
+    @Test
+    void shouldCountUnreadNotifications() {
+        Patient patient = TestDataFactory.patient(1L);
+
+        when(patientRepository.findByUser_Email(patient.getUser().getEmail())).thenReturn(Optional.of(patient));
+        when(notificationRepository.countByPatientAndLuFalse(patient)).thenReturn(3L);
+
+        long unread = notificationService.countUnread(patient.getUser().getEmail());
+
+        assertThat(unread).isEqualTo(3L);
+    }
+
+    @Test
     void shouldMarkNotificationAsRead() {
         Patient patient = TestDataFactory.patient(1L);
         Notification notification = TestDataFactory.notification(9L, patient);
@@ -44,6 +75,15 @@ class NotificationServiceTest {
 
         assertThat(result.isLu()).isTrue();
         verify(notificationRepository).save(notification);
+    }
+
+    @Test
+    void shouldThrowExceptionWhenNotificationDoesNotExist() {
+        when(notificationRepository.findById(404L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> notificationService.markRead(404L, "patient@mail.com"))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("Notification introuvable");
     }
 
     @Test
@@ -61,6 +101,26 @@ class NotificationServiceTest {
     }
 
     @Test
+    void shouldMarkAllNotificationsAsRead() {
+        Patient patient = TestDataFactory.patient(1L);
+
+        when(patientRepository.findByUser_Email(patient.getUser().getEmail())).thenReturn(Optional.of(patient));
+
+        notificationService.markAllRead(patient.getUser().getEmail());
+
+        verify(notificationRepository).markAllAsReadByPatient(patient);
+    }
+
+    @Test
+    void shouldThrowExceptionWhenPatientCannotBeResolved() {
+        when(patientRepository.findByUser_Email("missing@mail.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> notificationService.countUnread("missing@mail.com"))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("Fiche patient introuvable");
+    }
+
+    @Test
     void shouldCreateAppointmentPlannedNotification() {
         Patient patient = TestDataFactory.patient(1L);
         RendezVous rendezVous = TestDataFactory.rendezVous(3L, patient, TestDataFactory.medecin(2L));
@@ -71,5 +131,33 @@ class NotificationServiceTest {
         verify(notificationRepository).save(captor.capture());
         assertThat(captor.getValue().getType()).isEqualTo("RDV_PLANIFIE");
         assertThat(captor.getValue().getPatient().getId()).isEqualTo(patient.getId());
+    }
+
+    @Test
+    void shouldCreateAppointmentConfirmedNotification() {
+        Patient patient = TestDataFactory.patient(1L);
+        RendezVous rendezVous = TestDataFactory.rendezVous(3L, patient, TestDataFactory.medecin(2L));
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+
+        notificationService.notifierRdvConfirme(rendezVous);
+
+        verify(notificationRepository).save(captor.capture());
+        assertThat(captor.getValue().getType()).isEqualTo("RDV_CONFIRME");
+        assertThat(captor.getValue().getTitre()).contains("confirm");
+        assertThat(captor.getValue().isLu()).isFalse();
+    }
+
+    @Test
+    void shouldCreateAppointmentCancelledNotification() {
+        Patient patient = TestDataFactory.patient(1L);
+        RendezVous rendezVous = TestDataFactory.rendezVous(3L, patient, TestDataFactory.medecin(2L));
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+
+        notificationService.notifierRdvAnnule(rendezVous);
+
+        verify(notificationRepository).save(captor.capture());
+        assertThat(captor.getValue().getType()).isEqualTo("RDV_ANNULE");
+        assertThat(captor.getValue().getMessage()).contains("House");
+        assertThat(captor.getValue().getPatient()).isEqualTo(patient);
     }
 }
