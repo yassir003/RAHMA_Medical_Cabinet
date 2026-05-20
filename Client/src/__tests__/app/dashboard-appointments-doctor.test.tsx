@@ -143,8 +143,8 @@ describe("dashboard appointment and doctor pages", () => {
     await waitFor(() => expect(screen.getByText("Gestion des Rendez-vous")).toBeInTheDocument());
     await userEvent.click(screen.getByRole("button", { name: /Nouveau RDV/ }));
     await userEvent.type(screen.getByPlaceholderText(/Rechercher par nom/), "Alice");
-    await waitFor(() => expect(screen.getByRole("button", { name: /Alice Doe/ })).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: /Alice Doe/ }));
+    await waitFor(() => expect(getPatients).toHaveBeenCalledWith(0, 8, "Alice"), { timeout: 2000 });
+    await userEvent.click((await screen.findByText("CIN: AB123456")).closest("button")!);
     await userEvent.selectOptions(screen.getByRole("combobox"), "4");
     await userEvent.type(screen.getByPlaceholderText(/Raison de la consultation/), "Follow-up visit");
     await userEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
@@ -155,6 +155,17 @@ describe("dashboard appointment and doctor pages", () => {
       dateHeure: `${today}T09:00:00`,
       motif: "Follow-up visit",
     })));
+  });
+
+  it("should show validation error when admin appointment modal is submitted incomplete", async () => {
+    render(<AppointmentsPage />);
+
+    await waitFor(() => expect(screen.getByText("Gestion des Rendez-vous")).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /Nouveau RDV/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
+
+    expect(createRendezVous).not.toHaveBeenCalled();
+    expect(screen.getByText("Veuillez remplir tous les champs obligatoires.")).toBeInTheDocument();
   });
 
   it("should edit and delete appointment from admin page", async () => {
@@ -171,6 +182,31 @@ describe("dashboard appointment and doctor pages", () => {
     })));
 
     expect(updateRendezVousFull).toHaveBeenCalled();
+  });
+
+  it("should delete appointment from admin day panel after confirmation", async () => {
+    render(<AppointmentsPage />);
+
+    await waitFor(() => expect(screen.getAllByText("Alice Doe").length).toBeGreaterThan(0));
+    await userEvent.click(screen.getByRole("button", { name: /Supprimer le rendez-vous de Alice Doe/ }));
+    expect(screen.getByText("Supprimer ce rendez-vous ?")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /^Supprimer$/ }));
+
+    await waitFor(() => expect(deleteRendezVous).toHaveBeenCalledWith(30));
+  });
+
+  it("should load doctor appointments from doctor-specific endpoint", async () => {
+    (useAuth as jest.Mock).mockReturnValue({ user: { email: "doctor@mail.com", role: "MEDECIN" } });
+
+    render(<AppointmentsPage />);
+
+    await waitFor(() => expect(screen.getByText("Mes Rendez-vous")).toBeInTheDocument());
+
+    expect(getMyRdvsAsMedecin).toHaveBeenCalledWith(0, 500, "desc");
+    expect(getRendezVousAll).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: /Nouveau RDV/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Modifier/ })).not.toBeInTheDocument();
   });
 
   it("should render doctor workspace and navigate from consultation row", async () => {

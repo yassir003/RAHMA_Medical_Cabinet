@@ -654,7 +654,9 @@ export default function AppointmentsPage() {
                             fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                             <Edit2 size={11} /> Modifier
                           </button>
-                          <button onClick={() => setDeleteTarget(rv)}
+                          <button
+                            aria-label={`Supprimer le rendez-vous de ${rv.patientPrenom} ${rv.patientNom}`}
+                            onClick={() => setDeleteTarget(rv)}
                             style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6,
                               border: "none", background: "#fef2f2", color: "#dc2626",
                               fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>

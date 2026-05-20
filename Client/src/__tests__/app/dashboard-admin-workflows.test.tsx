@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import PatientsPage from "@/app/dashboard/patients/page";
 import SecretaryWorkspacePage from "@/app/dashboard/secretary/page";
 import {
+  ApiError,
   chatAi,
   createPatient,
   deletePatient,
@@ -129,17 +130,63 @@ describe("dashboard admin workflows", () => {
     await waitFor(() => expect(deletePatient).toHaveBeenCalledWith(7));
   });
 
+  it("should show validation error when patient creation is submitted without identity fields", async () => {
+    render(<PatientsPage />);
+
+    await waitFor(() => expect(screen.getByText("Alice Doe")).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /Nouveau patient/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
+
+    expect(createPatient).not.toHaveBeenCalled();
+    expect(await screen.findByText(/Nom, pr.*nom et CIN sont requis/i)).toBeInTheDocument();
+  });
+
+  it("should display API errors while creating a patient", async () => {
+    (createPatient as jest.Mock).mockRejectedValueOnce(new ApiError("CIN deja utilise"));
+
+    render(<PatientsPage />);
+
+    await waitFor(() => expect(screen.getByText("Alice Doe")).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /Nouveau patient/ }));
+    await userEvent.type(screen.getByPlaceholderText("Ex: Alaoui"), "Smith");
+    await userEvent.type(screen.getByPlaceholderText("Ex: Youssef"), "Sara");
+    await userEvent.type(screen.getByPlaceholderText("Ex: BE123456"), "BE123456");
+    await userEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
+
+    expect(await screen.findByText("CIN deja utilise")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Nouveau patient" })).toBeInTheDocument();
+  });
+
+  it("should load the next patients page from pagination controls", async () => {
+    (getPatients as jest.Mock).mockResolvedValue({
+      content: [patient],
+      totalElements: 13,
+      totalPages: 2,
+    });
+
+    render(<PatientsPage />);
+
+    await waitFor(() => expect(screen.getByText(/Page 1 sur 2.*13 patients/)).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /Suivant/ }));
+
+    await waitFor(() => expect(getPatients).toHaveBeenCalledWith(1, 12, ""));
+    expect(screen.getByText(/Page 2 sur 2.*13 patients/)).toBeInTheDocument();
+  });
+
   it("should search patients and show empty state when no result is returned", async () => {
-    (getPatients as jest.Mock)
-      .mockResolvedValueOnce({ content: [patient], totalElements: 1, totalPages: 1 })
-      .mockResolvedValueOnce({ content: [], totalElements: 0, totalPages: 1 });
+    (getPatients as jest.Mock).mockImplementation((_page: number, _size: number, query: string) =>
+      Promise.resolve(query
+        ? { content: [], totalElements: 0, totalPages: 1 }
+        : { content: [patient], totalElements: 1, totalPages: 1 }),
+    );
 
     render(<PatientsPage />);
 
     await waitFor(() => expect(screen.getByText("Alice Doe")).toBeInTheDocument());
     await userEvent.type(screen.getByPlaceholderText(/Rechercher par nom/), "Nobody");
 
-    await waitFor(() => expect(screen.getByText(/Aucun/)).toBeInTheDocument());
+    await waitFor(() => expect(getPatients).toHaveBeenCalledWith(0, 12, "Nobody"));
+    expect(screen.getByText(/Aucun/)).toBeInTheDocument();
   });
 
   it("should render secretary workspace and update today appointment status", async () => {
